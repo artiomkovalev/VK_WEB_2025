@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="question-item">
+  <div class="vote-controls">
+    <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+    <a href="#" class="vote-arrow">▲</a>
+      <span class="vote-count">5</span>
+    <a href="#" class="vote-arrow">▼</a>
+  </div>
+  <div class="question-content">
+    <h2>The secrets of moon gardening</h2>
+    <p>What are the most resilient plant species for space colonization, and how can we optimize their growth?</p>
+    <div class="question-meta tags">
+      Tags:
+      <a href="/tag/moon">moon gardening</a>
+      <a href="/tag/botany">lunar botanist</a>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+{% for i in "123" %}
+<div class="question-item">
+  <div class="vote-controls">
+    <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+    <a href="#" class="vote-arrow">▲</a>
+      <span class="vote-count">5</span>
+    <a href="#" class="vote-arrow">▼</a>
+  </div>
+  <div class="question-content">
+    <p>Looking for tips on building eco-friendly shelters for moon colonists.</p>
+    <input type="checkbox" id="correct_{{ i }}"> <label for="correct_{{ i }}">Correct!</label>
+  </div>
+</div>
+{% endfor %}
+
+<hr>
+
+<h3>Your Answer</h3>
+<form>
+  <div class="form-group">
+    <textarea rows="8"></textarea>
+  </div>
+  <button type="submit" class="btn">Answer</button>
+</form>
+{% endblock %}
