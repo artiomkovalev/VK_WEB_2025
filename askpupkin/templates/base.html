@@ -12,7 +12,7 @@
 
   <header class="header">
     <div class="header-inner">
-      <a href="/" class="logo">AskPupkin</a>
+      <a href="{% url 'index' %}" class="logo">AskPupkin</a>
       <div class="search-form">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g clip-path="url(#clip0_2_11)">
@@ -32,7 +32,7 @@
         <div class="user-block-main">
           <span>Dr. Pepper</span>
           <div class="user-block-actions">
-            <a href="/settings">settings</a>
+            <a href="{% url 'settings' %}">settings</a>
             <a href="/logout">log out</a>
           </div>
         </div>
@@ -49,9 +49,9 @@
       <div class="sidebar-block">
         <h3>Popular Tags</h3>
         <div class="tags">
-          <a href="/tag/perl">perl</a>
-          <a href="/tag/python">Python</a>
-          <a href="/tag/django">django</a>
+          <a href="{% url 'tag' tag_name='perl' %}">perl</a>
+          <a href="{% url 'tag' tag_name='python' %}">Python</a>
+          <a href="{% url 'tag' tag_name='django' %}">django</a>
         </div>
       </div>
       <div class="sidebar-block">
