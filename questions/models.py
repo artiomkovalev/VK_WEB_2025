@@ -1,3 +1,67 @@
 from django.db import models
+from django.contrib.auth.models import User
+from django.urls import reverse
 
-# Create your models here.
+class QuestionManager(models.Manager):
+  def new(self):
+    return self.order_by('-created_at')
+
+  def hot(self):
+    return self.order_by('-rating')
+
+class Profile(models.Model):
+  user = models.OneToOneField(User, on_delete=models.CASCADE)
+  avatar = models.ImageField(upload_to='avatars/%Y/%m/%d/', blank=True, null=True)
+
+  def __str__(self):
+    return self.user.username
+
+class Tag(models.Model):
+  name = models.CharField(max_length=50, unique=True)
+
+  def __str__(self):
+    return self.name
+
+class Question(models.Model):
+  author = models.ForeignKey(Profile, on_delete=models.CASCADE)
+  title = models.CharField(max_length=255)
+  text = models.TextField()
+  created_at = models.DateTimeField(auto_now_add=True)
+  tags = models.ManyToManyField(Tag)
+  rating = models.IntegerField(default=0)
+  
+  objects = QuestionManager()
+
+  def __str__(self):
+    return self.title
+
+  def get_absolute_url(self):
+    return reverse('question', kwargs={'question_id': self.pk})
+
+class Answer(models.Model):
+  author = models.ForeignKey(Profile, on_delete=models.CASCADE)
+  question = models.ForeignKey(Question, on_delete=models.CASCADE)
+  text = models.TextField()
+  created_at = models.DateTimeField(auto_now_add=True)
+  is_correct = models.BooleanField(default=False)
+  rating = models.IntegerField(default=0)
+  
+  def __str__(self):
+    return f"Answer to '{self.question.title}' by {self.author.user.username}"
+
+
+class QuestionLike(models.Model):
+  user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+  question = models.ForeignKey(Question, on_delete=models.CASCADE)
+  value = models.SmallIntegerField(choices=[(1, 'Like'), (-1, 'Dislike')])
+
+  class Meta:
+    unique_together = ('user', 'question')
+
+class AnswerLike(models.Model):
+  user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+  answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
+  value = models.SmallIntegerField(choices=[(1, 'Like'), (-1, 'Dislike')])
+
+  class Meta:
+    unique_together = ('user', 'answer')
