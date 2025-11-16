@@ -25,13 +25,13 @@
   </div>
   <div class="question-content">
     <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
-    <p>{{ question.text }}</p>
+    <p>{{ question.text|truncatechars:80 }}</p>
     <div class="question-meta">
-      <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ forloop.counter }})</a>
+      <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.answer_set.count }})</a>
       <span class="tags">
         Tags:
-        {% for tag in question.tags %}
-          <a href="{% url 'tag' tag_name=tag %}">{{ tag }}</a>
+        {% for tag in question.tags.all %}
+          <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
         {% endfor %}
       </span>
     </div>

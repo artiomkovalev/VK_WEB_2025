@@ -15,8 +15,8 @@
     <p>{{ question.text }}</p>
     <div class="question-meta tags">
       Tags:
-      {% for tag in question.tags %}
-        <a href="{% url 'tag' tag_name=tag %}">{{ tag }}</a>
+      {% for tag in question.tags.all %}
+        <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
       {% endfor %}
     </div>
   </div>
@@ -34,7 +34,7 @@
   </div>
   <div class="question-content">
     <p>{{ answer.text }}</p>
-    <input type="checkbox" id="correct_{{ answer.id }}"> <label for="correct_{{ answer.id }}">Correct!</label>
+    <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct  %}checked{% endif %}> <label for="correct_{{ answer.id }}">Correct!</label>
   </div>
 </div>
 {% endfor %}
