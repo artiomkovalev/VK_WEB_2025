@@ -11,6 +11,15 @@ body {
   padding: 0;
 }
 
+button a {
+  color: white;
+  text-decoration: none;
+}
+
+button a:hover {
+  text-decoration: none;
+}
+
 a {
   color: #009689;
   text-decoration: none;
@@ -267,4 +276,11 @@ hr {
 .questions-header a {
   font-size: 20px;
   font-weight: medium;
+}
+
+.avatar {
+  border-radius: 50%;
+  margin-bottom: 10px;
+  width: 98px;
+  height: 98px;
 }

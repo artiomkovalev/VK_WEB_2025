@@ -6,6 +6,7 @@
   <meta charset="UTF-8">
   <title>AskPupkin</title>
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="icon" href="/askpupkin/static/images/favicon.ico" type="image/x-icon">
 </head>
 
 <body>
@@ -26,14 +27,14 @@
         </svg>
         <input type="search" placeholder="Search">
       </div>
-      <button class="btn" onclick="window.location.href = '/ask'">ASK!</button>
+      <button class="btn"><a href="/ask">ASK!</a></button>
       <div class="user-block">
         <img src="{% static 'images/cat.jpg' %}" alt="avatar">
         <div class="user-block-main">
           <span>Dr. Pepper</span>
           <div class="user-block-actions">
             <a href="/settings">settings</a>
-            <a href="/logout">log out</a>
+            <a href="#">log out</a>
           </div>
         </div>
       </div>

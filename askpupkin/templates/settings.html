@@ -4,7 +4,8 @@
 
 {% block content %}
 <h2>Settings: Dr. Pepper</h2>
-<form>
+<form method="POST" action="{% url 'settings' %}" enctype="multipart/form-data">
+  {% csrf_token %}
   <div class="form-group">
     <label for="login">Login</label>
     <input type="text" id="login" value="dr_pepper" readonly>
@@ -21,7 +22,7 @@
   <div class="form-group">
     <label>Avatar</label>
     <div>
-      <img src="{% static 'images/cat.jpg' %}" style="border-radius:50%; margin-bottom: 10px; width: 98px; height: 98px;" alt="avatar">
+      <img class="avatar" src="{% static 'images/cat.jpg' %}" alt="avatar">
     </div>
     <input type="file" id="avatar">
   </div>
