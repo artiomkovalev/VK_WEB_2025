@@ -15,7 +15,7 @@ class Profile(models.Model):
     avatar = models.ImageField(upload_to='avatars/%Y/%m/%d/', blank=True, null=True)
 
     def __str__(self):
-        return self.user.username
+        return f"Профиль пользователя #{self.user.username}"
     
 class TagManager(models.Manager):
     def popular(self):
@@ -26,7 +26,7 @@ class Tag(models.Model):
     objects = TagManager()
 
     def __str__(self):
-        return self.name
+        return f"#{self.name}"
 
 class Question(models.Model):
     author = models.ForeignKey(Profile, on_delete=models.CASCADE)
@@ -39,7 +39,7 @@ class Question(models.Model):
     objects = QuestionManager()
 
     def __str__(self):
-        return self.title
+        return f"{self.title} (by {self.author.user.username})"
 
     def get_absolute_url(self):
         return reverse('question', kwargs={'question_id': self.pk})
@@ -53,7 +53,7 @@ class Answer(models.Model):
     rating = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"Answer to '{self.question.title}' by {self.author.user.username}"
+        return f"Answer to '{self.question.title}' (by {self.author.user.username})"
 
 
 class QuestionLike(models.Model):
