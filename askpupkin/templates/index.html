@@ -4,38 +4,38 @@
 
 {% block content %}
 {% if tag_name %}
-  <h2>Tag: {{ tag_name }}</h2>
+<h2>Tag: {{ tag_name }}</h2>
 {% else %}
-  <div class="questions-header">
+<div class="questions-header">
     <h2>{{ title }}</h2>
     {% if title == 'New Questions' %}
-      <a href="{% url 'hot' %}">Hot questions</a>
+    <a href="{% url 'hot' %}">Hot questions</a>
     {% else %}
-      <a href="{% url 'index' %}">New questions</a>
+    <a href="{% url 'index' %}">New questions</a>
     {% endif %}
-  </div>
+</div>
 {% endif %}
 {% for question in page %}
 <div class="question-item">
-  <div class="vote-controls">
-    <img src="{% static 'images/cat.jpg' %}" alt="avatar">
-    <a href="#" class="vote-arrow">▲</a>
-      <span class="vote-count">{{ question.rating }}</span>
-    <a href="#" class="vote-arrow">▼</a>
-  </div>
-  <div class="question-content">
-    <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
-    <p>{{ question.text|truncatechars:80 }}</p>
-    <div class="question-meta">
-      <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.answer_set.count }})</a>
-      <span class="tags">
-        Tags:
-        {% for tag in question.tags.all %}
-          <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
-        {% endfor %}
-      </span>
+    <div class="vote-controls">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+        <a href="#" class="vote-arrow">▲</a>
+        <span class="vote-count">{{ question.rating }}</span>
+        <a href="#" class="vote-arrow">▼</a>
     </div>
-  </div>
+    <div class="question-content">
+        <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
+        <p>{{ question.text|truncatechars:80 }}</p>
+        <div class="question-meta">
+            <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.answer_set.count }})</a>
+            <span class="tags">
+                Tags:
+                {% for tag in question.tags.all %}
+                <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
+                {% endfor %}
+            </span>
+        </div>
+    </div>
 </div>
 {% endfor %}
 

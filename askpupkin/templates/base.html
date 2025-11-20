@@ -3,68 +3,85 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <title>AskPupkin</title>
-  <link rel="stylesheet" href="{% static 'css/main.css' %}">
-  <link rel="icon" href="/askpupkin/static/images/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8">
+    <title>AskPupkin</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
 </head>
 
 <body>
 
-  <header class="header">
-    <div class="header-inner">
-      <a href="{% url 'index' %}" class="logo">AskPupkin</a>
-      <div class="search-form">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g clip-path="url(#clip0_2_11)">
-            <path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="#A1A1A1"/>
-          </g>
-          <defs>
-            <clipPath id="clip0_2_11">
-              <rect width="24" height="24" fill="white"/>
-            </clipPath>
-          </defs>
-        </svg>
-        <input type="search" placeholder="Search">
-      </div>
-      <button class="btn"><a href="/ask">ASK!</a></button>
-      <div class="user-block">
-        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
-        <div class="user-block-main">
-          <span>Dr. Pepper</span>
-          <div class="user-block-actions">
-            <a href="{% url 'settings' %}">settings</a>
-            <a href="/logout">log out</a>
-          </div>
+    <header class="header">
+        <div class="header-inner">
+            <a href="{% url 'index' %}" class="logo">AskPupkin</a>
+            <div class="search-form">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_2_11)">
+                        <path
+                            d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z"
+                            fill="#A1A1A1" />
+                    </g>
+                    <defs>
+                        <clipPath id="clip0_2_11">
+                            <rect width="24" height="24" fill="white" />
+                        </clipPath>
+                    </defs>
+                </svg>
+                <input type="search" placeholder="Search">
+            </div>
+            <a href="{% url 'ask' %}" class="btn">ASK!</a>
+            <div class="user-block">
+                {% if user.is_authenticated %}
+                <div class="avatar-container">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="avatar" class="avatar">
+                    {% else %}
+                        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar">
+                    {% endif %}
+                </div>
+                <div class="user-block-main">
+                    <span>{{ user.username }}</span>
+                    <div class="user-block-actions">
+                        <a href="{% url 'settings' %}">settings</a>
+                        <a href="{% url 'logout' %}">log out</a>
+                    </div>
+                </div>
+                {% else %}
+                    <div class="user-block-actions">
+                        <a href="{% url 'login' %}">log in</a>
+                        <a href="{% url 'signup' %}">register</a>
+                    </div>
+                {% endif %}
+            </div>
         </div>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <div class="container main-layout">
-    <main class="main-content">
-      {% block content %}
-      {% endblock %}
-    </main>
-    <aside class="sidebar">
-      <div class="sidebar-block">
-        <h3>Popular Tags</h3>
-        <div class="tags">
-          <a href="{% url 'tag' tag_name='perl' %}">perl</a>
-          <a href="{% url 'tag' tag_name='python' %}">Python</a>
-          <a href="{% url 'tag' tag_name='django' %}">django</a>
-        </div>
-      </div>
-      <div class="sidebar-block">
-        <h3>Best Members</h3>
-        <ul>
-          <li><a href="#">Mr. Freeman</a></li>
-          <li><a href="#">Dr. House</a></li>
-          <li><a href="#">Bender</a></li>
-        </ul>
-      </div>
-    </aside>
-  </div>
+    <div class="container main-layout">
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
+        <aside class="sidebar">
+            <div class="sidebar-block">
+                <h3>Popular Tags</h3>
+                <div class="tags">
+                    {% for tag in popular_tags %}
+                        <a href="{% url 'tag' tag_name=tag.name %}">{{ tag.name }}</a>
+                    {% empty %}
+                        <p>No tags</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="sidebar-block">
+                <h3>Best Members</h3>
+                <ul>
+                    <li><a href="#">Mr. Freeman</a></li>
+                    <li><a href="#">Dr. House</a></li>
+                    <li><a href="#">Bender</a></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
 
 </body>
 

@@ -4,53 +4,54 @@
 
 {% block content %}
 <div class="question-item">
-  <div class="vote-controls">
-    <img src="{% static 'images/cat.jpg' %}" alt="avatar">
-    <a href="#" class="vote-arrow">▲</a>
-      <span class="vote-count">{{ question.rating }}</span>
-    <a href="#" class="vote-arrow">▼</a>
-  </div>
-  <div class="question-content">
-    <h2>{{ question.title }}</h2>
-    <p>{{ question.text }}</p>
-    <div class="question-meta tags">
-      Tags:
-      {% for tag in question.tags.all %}
-        <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
-      {% endfor %}
+    <div class="vote-controls">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+        <a href="#" class="vote-arrow">▲</a>
+        <span class="vote-count">{{ question.rating }}</span>
+        <a href="#" class="vote-arrow">▼</a>
     </div>
-  </div>
+    <div class="question-content">
+        <h2>{{ question.title }}</h2>
+        <p>{{ question.text }}</p>
+        <div class="question-meta tags">
+            Tags:
+            {% for tag in question.tags.all %}
+            <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 
 <hr id="answers">
 
 {% for answer in answers %}
 <div class="question-item">
-  <div class="vote-controls">
-    <img src="{% static 'images/cat.jpg' %}" alt="avatar">
-    <a href="#" class="vote-arrow">▲</a>
-      <span class="vote-count">{{ answer.rating }}</span>
-    <a href="#" class="vote-arrow">▼</a>
-  </div>
-  <div class="question-content">
-    <p>{{ answer.text }}</p>
-    <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct  %}checked{% endif %}> <label for="correct_{{ answer.id }}">Correct!</label>
-  </div>
+    <div class="vote-controls">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+        <a href="#" class="vote-arrow">▲</a>
+        <span class="vote-count">{{ answer.rating }}</span>
+        <a href="#" class="vote-arrow">▼</a>
+    </div>
+    <div class="question-content">
+        <p>{{ answer.text }}</p>
+        <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct %}checked{% endif %}> <label
+            for="correct_{{ answer.id }}">Correct!</label>
+    </div>
 </div>
 {% endfor %}
 
 {% with page=answers %}
-  {% include '_pagination.html' %}
+{% include '_pagination.html' %}
 {% endwith %}
 
 <hr>
 
 <h3>Your Answer</h3>
 <form method="POST" action="{% url 'question' question_id=question.id %}">
-  {% csrf_token %}
-  <div class="form-group">
-    <textarea rows="8" required></textarea>
-  </div>
-  <button type="submit" class="btn">Answer</button>
+    {% csrf_token %}
+    <div class="form-group">
+        <textarea rows="8" required></textarea>
+    </div>
+    <button type="submit" class="btn">Answer</button>
 </form>
 {% endblock %}
