@@ -3,7 +3,7 @@
     font-family: 'Inter';
     font-style: normal;
     font-weight: 400;
-    src: url('../fonts/Inter.ttf') format('woff2');
+    src: url('../fonts/Inter.woff2') format('woff2');
 }
 
 * {
