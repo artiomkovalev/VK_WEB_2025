@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from questions.models import Profile, Tag, Question, Answer, QuestionLike, AnswerLike
 from django.contrib.auth.models import User
-from django.db.models import Sum
+from django.db.models import Sum, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 
 class Command(BaseCommand):
@@ -20,83 +20,94 @@ class Command(BaseCommand):
         print(f'Starting to fill database with ratio: {ratio}...')
     
         print('Creating users and profiles...')
-        users = [User(username=fake.unique.user_name(), password='password123') for _ in range(ratio)]
-        User.objects.bulk_create(users)
-        users = User.objects.all().order_by('-id')[:ratio] 
-        profiles = [Profile(user=user) for user in users]
-        Profile.objects.bulk_create(profiles)
-        profiles = list(Profile.objects.all())
+        users = [User(username=f'{fake.word()}_{i}_{random.randint(1000, 5000)}', password='password123') for i in range(ratio)]
+        User.objects.bulk_create(users, batch_size=500)
+        new_users = list(User.objects.all().order_by('-id')[:ratio])
+        profiles = [Profile(user=user) for user in new_users]
+        Profile.objects.bulk_create(profiles, batch_size=500)
+        profile_ids = [p.id for p in profiles]
 
         print('Creating tags...')
-        tags = [Tag(name=fake.unique.word()) for _ in range(ratio)]
-        Tag.objects.bulk_create(tags)
-        tags = list(Tag.objects.all())
+        tags = [Tag(name=f'{fake.word()}_{i}') for i in range(ratio)]
+        Tag.objects.bulk_create(tags, batch_size=500)
+        all_tags = list(Tag.objects.all().order_by('-id')[:ratio])
 
         print('Creating questions...')
         questions = []
-        for _ in range(ratio * 10):
-            question = Question(
-                author=random.choice(profiles),
+        for i in range(ratio * 10):
+            questions.append(Question(
+                author_id=random.choice(profile_ids),
                 title=fake.sentence(nb_words=5),
                 text=fake.paragraph(nb_sentences=3)
-            )
-            questions.append(question)
-        Question.objects.bulk_create(questions)
-        questions = list(Question.objects.all())
+            ))
+        Question.objects.bulk_create(questions, batch_size=500)
+        new_questions = list(Question.objects.all().order_by('-id')[:ratio * 10])
+        question_ids = [q.id for q in new_questions]
 
         print('Adding tags to questions...')
-        for question in questions:
-            question.tags.set(random.sample(tags, k=random.randint(1, 4)))
+        QuestionTag = Question.tags.through
+        through_objects = []
+        for q in new_questions:
+            chosen_tags = random.sample(all_tags, k=random.randint(1, 4))
+            for tag in chosen_tags:
+                through_objects.append(QuestionTag(question_id=q.id, tag_id=tag.id))
+        
+        QuestionTag.objects.bulk_create(through_objects, batch_size=10000, ignore_conflicts=True)
 
         print('Creating answers...')
         answers = []
-        for _ in range(ratio * 100):
-            answer = Answer(
-                author=random.choice(profiles),
-                question=random.choice(questions),
+        for i in range(ratio * 100):
+            answers.append(Answer(
+                author_id=random.choice(profile_ids),
+                question_id=random.choice(question_ids),
                 text=fake.paragraph(nb_sentences=2)
-            )
-            answers.append(answer)
-        Answer.objects.bulk_create(answers)
-        answers = list(Answer.objects.all())
+            ))
+        Answer.objects.bulk_create(answers, batch_size=500)
+        new_answers = list(Answer.objects.all().order_by('-id')[:ratio * 100])
+        answer_ids = [a.id for a in new_answers]
 
         print('Creating likes...')
-        all_answers = list(Answer.objects.all())
         
-        question_likes_to_create = []
-        question_like_pairs = set()
+        question_likes = []
         for _ in range(ratio * 100):
-            profile = random.choice(profiles)
-            question = random.choice(questions)
-            if (profile.id, question.id) not in question_like_pairs:
-                question_likes_to_create.append(QuestionLike(user=profile, question=question, value=random.choice([1, -1])))
-                question_like_pairs.add((profile.id, question.id))
-        QuestionLike.objects.bulk_create(question_likes_to_create, ignore_conflicts=True)
+            question_likes.append(QuestionLike(
+                user_id=random.choice(profile_ids),
+                question_id=random.choice(question_ids),
+                value=random.choice([1, -1])
+            ))
+        QuestionLike.objects.bulk_create(question_likes, batch_size=5000, ignore_conflicts=True)
 
-        answer_likes_to_create = []
-        answer_like_pairs = set()
+        print('Creating answer likes...')
+
+        answer_likes = []
         for _ in range(ratio * 100):
-            profile = random.choice(profiles)
-            answer = random.choice(all_answers)
-            if (profile.id, answer.id) not in answer_like_pairs:
-                answer_likes_to_create.append(AnswerLike(user=profile, answer=answer, value=random.choice([1, -1])))
-                answer_like_pairs.add((profile.id, answer.id))
-        AnswerLike.objects.bulk_create(answer_likes_to_create, ignore_conflicts=True)
+            answer_likes.append(AnswerLike(
+                user_id=random.choice(profile_ids),
+                answer_id=random.choice(answer_ids),
+                value=random.choice([1, -1])
+            ))
+        AnswerLike.objects.bulk_create(answer_likes, batch_size=5000, ignore_conflicts=True)
 
         print('Updating question ratings...')
-        questions_with_ratings = Question.objects.annotate(calc_rating=Coalesce(Sum('questionlike__value'), 0))
-        questions_to_update = []
-        for question in questions_with_ratings:
-            question.rating = question.calc_rating
-            questions_to_update.append(question)
-        Question.objects.bulk_update(questions_to_update, ['rating'])
+        ratings_question = QuestionLike.objects.filter(
+            question=OuterRef('pk')
+        ).values('question').annotate(
+            sum_rating=Coalesce(Sum('value'), 0)
+        ).values('sum_rating')
+
+        Question.objects.filter(id__in=question_ids).update(
+            rating=Coalesce(Subquery(ratings_question), 0)
+        )
 
         print('Updating answer ratings...')
-        answers_with_ratings = Answer.objects.annotate(calc_rating=Coalesce(Sum('answerlike__value'), 0))
-        answers_to_update = []
-        for answer in answers_with_ratings:
-            answer.rating = answer.calc_rating
-            answers_to_update.append(answer)
-        Answer.objects.bulk_update(answers_to_update, ['rating'])
+        ratings_answer = AnswerLike.objects.filter(
+            answer=OuterRef('pk')
+        ).values('answer').annotate(
+            sum_rating=Coalesce(Sum('value'), 0)
+        ).values('sum_rating')
+
+        Answer.objects.filter(id__in=answer_ids).update(
+            rating=Coalesce(Subquery(ratings_answer), 0)
+        )
 
         print('Successfully filled the database!')
