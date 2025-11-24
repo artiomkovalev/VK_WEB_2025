@@ -1,0 +1,19 @@
+{% load static %}
+<div class="question-item">
+    <div class="vote-controls">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+        <a href="#" class="vote-arrow">▲</a>
+        <span class="vote-count">{{ answer.rating }}</span>
+        <a href="#" class="vote-arrow">▼</a>
+    </div>
+    <div class="question-content">
+        <p>{{ answer.text }}</p>
+        <div class="question-meta">
+            <span class="author">
+                Author: <a href="#">{{ answer.author.username }}</a>
+            </span>
+        </div>
+        <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct %}checked{% endif %}>
+        <label for="correct_{{ answer.id }}">Correct!</label>
+    </div>
+</div>
