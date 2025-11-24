@@ -1,0 +1,27 @@
+{% load static %}
+<div class="question-item">
+    <div class="vote-controls">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+        <a href="#" class="vote-arrow">▲</a>
+        <span class="vote-count">{{ question.rating }}</span>
+        <a href="#" class="vote-arrow">▼</a>
+    </div>
+    <div class="question-content">
+        <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
+        <p>{{ question.text|truncatechars:80 }}</p>
+        <div class="question-meta">
+            <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.num_answers }})</a>
+            
+            <span class="tags">
+                Tags:
+                {% for tag in question.tags.all %}
+                <a href="{% url 'tag' tag_name=tag.name %}">{{ tag.name }}</a>
+                {% endfor %}
+            </span>
+
+            <span class="author">
+                Author: <a href="#">{{ question.author.username }}</a>
+            </span>
+        </div>
+    </div>
+</div>
