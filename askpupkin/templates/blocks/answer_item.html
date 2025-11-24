@@ -10,7 +10,7 @@
         <p>{{ answer.text }}</p>
         <div class="question-meta">
             <span class="author">
-                Author: <a href="#">{{ answer.author.user.username }}</a>
+                Author: <a href="#">{{ answer.author.username }}</a>
             </span>
         </div>
         <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct %}checked{% endif %}>

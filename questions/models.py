@@ -5,7 +5,7 @@ from django.db.models import Count
 
 class ProfileManager(models.Manager):
     def best(self):
-        return self.annotate(num_answers=Count('answer')).order_by('-num_answers')[:5]
+        return self.annotate(num_answers=Count('user__answer')).order_by('-num_answers')[:5]
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -30,7 +30,7 @@ class Tag(models.Model):
 class QuestionManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset()\
-            .select_related('author', 'author__user')\
+            .select_related('author', 'author__profile')\
             .prefetch_related('tags')\
             .annotate(num_answers=Count('answer'))
     
@@ -41,7 +41,7 @@ class QuestionManager(models.Manager):
         return self.get_queryset().order_by('-rating')
 
 class Question(models.Model):
-    author = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -51,13 +51,13 @@ class Question(models.Model):
     objects = QuestionManager()
 
     def __str__(self):
-        return f"{self.title} (by {self.author.user.username})"
+        return f"{self.title} (by {self.author.username})"
 
     def get_absolute_url(self):
         return reverse('question', kwargs={'question_id': self.pk})
 
 class Answer(models.Model):
-    author = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -65,11 +65,11 @@ class Answer(models.Model):
     rating = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"Answer to '{self.question.title}' (by {self.author.user.username})"
+        return f"Answer to '{self.question.title}' (by {self.author.username})"
 
 
 class QuestionLike(models.Model):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     value = models.SmallIntegerField(choices=[(1, 'Like'), (-1, 'Dislike')])
 
@@ -77,7 +77,7 @@ class QuestionLike(models.Model):
         unique_together = ('user', 'question')
 
 class AnswerLike(models.Model):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
     value = models.SmallIntegerField(choices=[(1, 'Like'), (-1, 'Dislike')])
 
