@@ -13,7 +13,7 @@
         <h3>Best Members</h3>
         <ul>
             {% for member in best_members %}
-            <li><a href="#">{{ member.user.username }}</a></li>
+            <li><a href="#">{{ member.username }}</a></li>
             {% empty %}
             <li>No active members</li>
             {% endfor %}

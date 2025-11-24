@@ -2,10 +2,13 @@ import random
 from faker import Faker
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from questions.models import Profile, Tag, Question, Answer, QuestionLike, AnswerLike
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.db.models import Sum, OuterRef, Subquery
 from django.db.models.functions import Coalesce
+from questions.models import Tag, Question, Answer, QuestionLike, AnswerLike
+
+User = get_user_model()
 
 class Command(BaseCommand):
     help = 'Fills the database with test data based on a given ratio.'
@@ -19,24 +22,31 @@ class Command(BaseCommand):
         fake = Faker()
         print(f'Starting to fill database with ratio: {ratio}...')
     
-        print('Creating users and profiles...')
-        users = [User(username=f'{fake.word()}_{i}_{random.randint(1000, 5000)}', password='password123') for i in range(ratio)]
+        print('Creating users...')
+        password_hash = make_password('password123')
+        
+        users = [
+            User(
+                username=f'{fake.word()}_{i}_{random.randint(10000, 99999)}', 
+                email=f'{fake.word()}_{i}_{random.randint(10000, 99999)}@example.com',
+                password=password_hash
+            ) 
+            for i in range(ratio)
+        ]
         User.objects.bulk_create(users, batch_size=500)
-        new_users = list(User.objects.all().order_by('-id')[:ratio])
-        profiles = [Profile(user=user) for user in new_users]
-        Profile.objects.bulk_create(profiles, batch_size=500)
-        profile_ids = [p.id for p in profiles]
+
+        new_users_ids = list(User.objects.values_list('id', flat=True).order_by('-id')[:ratio])
 
         print('Creating tags...')
-        tags = [Tag(name=f'{fake.word()}_{i}') for i in range(ratio)]
-        Tag.objects.bulk_create(tags, batch_size=500)
-        all_tags = list(Tag.objects.all().order_by('-id')[:ratio])
+        tags = [Tag(name=f'{fake.word()}_{i}_{random.randint(1, 10000)}') for i in range(ratio)]
+        Tag.objects.bulk_create(tags, batch_size=500, ignore_conflicts=True)
+        all_tags = list(Tag.objects.all()[:ratio])
 
         print('Creating questions...')
         questions = []
         for i in range(ratio * 10):
             questions.append(Question(
-                author_id=random.choice(profile_ids),
+                author_id=random.choice(new_users_ids),
                 title=fake.sentence(nb_words=5),
                 text=fake.paragraph(nb_sentences=3)
             ))
@@ -48,9 +58,10 @@ class Command(BaseCommand):
         QuestionTag = Question.tags.through
         through_objects = []
         for q in new_questions:
-            chosen_tags = random.sample(all_tags, k=random.randint(1, 4))
-            for tag in chosen_tags:
-                through_objects.append(QuestionTag(question_id=q.id, tag_id=tag.id))
+            if all_tags:
+                chosen_tags = random.sample(all_tags, k=random.randint(1, min(4, len(all_tags))))
+                for tag in chosen_tags:
+                    through_objects.append(QuestionTag(question_id=q.id, tag_id=tag.id))
         
         QuestionTag.objects.bulk_create(through_objects, batch_size=10000, ignore_conflicts=True)
 
@@ -58,7 +69,7 @@ class Command(BaseCommand):
         answers = []
         for i in range(ratio * 100):
             answers.append(Answer(
-                author_id=random.choice(profile_ids),
+                author_id=random.choice(new_users_ids),
                 question_id=random.choice(question_ids),
                 text=fake.paragraph(nb_sentences=2)
             ))
@@ -67,11 +78,11 @@ class Command(BaseCommand):
         answer_ids = [a.id for a in new_answers]
 
         print('Creating likes...')
-        
+
         question_likes = []
         for _ in range(ratio * 100):
             question_likes.append(QuestionLike(
-                user_id=random.choice(profile_ids),
+                user_id=random.choice(new_users_ids),
                 question_id=random.choice(question_ids),
                 value=random.choice([1, -1])
             ))
@@ -82,7 +93,7 @@ class Command(BaseCommand):
         answer_likes = []
         for _ in range(ratio * 100):
             answer_likes.append(AnswerLike(
-                user_id=random.choice(profile_ids),
+                user_id=random.choice(new_users_ids),
                 answer_id=random.choice(answer_ids),
                 value=random.choice([1, -1])
             ))

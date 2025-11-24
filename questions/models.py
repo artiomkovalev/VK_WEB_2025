@@ -1,20 +1,19 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import UserManager as DefaultUserManager, AbstractUser
 from django.urls import reverse
 from django.db.models import Count
 
-class ProfileManager(models.Manager):
+class UserManager(DefaultUserManager):
     def best(self):
-        return self.annotate(num_answers=Count('user__answer')).order_by('-num_answers')[:5]
-
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    avatar = models.ImageField(upload_to='avatars/%Y/%m/%d/', blank=True, null=True)
+        return self.annotate(num_answers=Count('answer')).order_by('-num_answers')[:5]
     
-    objects = ProfileManager()
+class User(AbstractUser):
+    avatar = models.ImageField(upload_to='avatars/%Y/%m/%d/', blank=True, null=True)
+
+    objects = UserManager()
 
     def __str__(self):
-        return f"Профиль пользователя #{self.user.username}"
+        return f"User {self.username}"
 
 class TagManager(models.Manager):
     def popular(self):
@@ -30,7 +29,7 @@ class Tag(models.Model):
 class QuestionManager(models.Manager):
     def get_full_queryset(self):
         return super().get_queryset()\
-            .select_related('author', 'author__profile')\
+            .select_related('author')\
             .prefetch_related('tags')\
             .annotate(num_answers=Count('answer'))
     

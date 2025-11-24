@@ -1,9 +1,15 @@
 from django.contrib import admin
-from .models import Profile, Tag, Question, Answer, QuestionLike, AnswerLike
+from django.contrib.auth.admin import UserAdmin
+from .models import User, Tag, Question, Answer, QuestionLike, AnswerLike
 
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'avatar')
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    fieldsets = UserAdmin.fieldsets + (
+        (None, {'fields': ('avatar',)}),
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (None, {'fields': ('avatar',)}),
+    )
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):

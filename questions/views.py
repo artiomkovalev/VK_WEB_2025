@@ -1,13 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
-from .models import Question, Answer, Tag, Profile
+from .models import Question, Answer, Tag, User
 from django.contrib.auth import logout as _logout
 
 def get_global_context(request):
     return {
         'popular_tags': Tag.objects.popular(),
-        'best_members': Profile.objects.best(),
+        'best_members': User.objects.best(),
     }
 
 def paginate(objects_list, request, per_page=10):
@@ -58,7 +58,7 @@ def hot(request):
 def tag(request, tag_name):
     tag_obj = get_object_or_404(Tag, name=tag_name)
     questions = Question.objects.filter(tags=tag_obj)\
-        .select_related('author', 'author__profile')\
+        .select_related('author')\
         .prefetch_related('tags')\
         .annotate(num_answers=Count('answer'))\
         .order_by('-created_at')
@@ -73,11 +73,11 @@ def tag(request, tag_name):
 
 def question(request, question_id):
     question_item = get_object_or_404(
-        Question.objects.select_related('author__profile').prefetch_related('tags'), 
+        Question.objects.select_related('author').prefetch_related('tags'), 
         pk=question_id
     )
     answers = Answer.objects.filter(question=question_item)\
-        .select_related('author', 'author__profile')\
+        .select_related('author')\
         .order_by('-created_at')
     page, page_range = paginate(answers, request, per_page=5)
     context = {
