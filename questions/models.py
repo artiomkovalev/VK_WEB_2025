@@ -28,17 +28,17 @@ class Tag(models.Model):
         return f"#{self.name}"
 
 class QuestionManager(models.Manager):
-    def get_queryset(self):
+    def get_full_queryset(self):
         return super().get_queryset()\
             .select_related('author', 'author__profile')\
             .prefetch_related('tags')\
             .annotate(num_answers=Count('answer'))
     
     def new(self):
-        return self.get_queryset().order_by('-created_at')
+        return self.get_full_queryset().order_by('-created_at')
 
     def hot(self):
-        return self.get_queryset().order_by('-rating')
+        return self.get_full_queryset().order_by('-rating')
 
 class Question(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -57,7 +57,11 @@ def hot(request):
 
 def tag(request, tag_name):
     tag_obj = get_object_or_404(Tag, name=tag_name)
-    questions = Question.objects.filter(tags=tag_obj).select_related('author__profile').prefetch_related('tags').annotate(num_answers=Count('answer')).order_by('-created_at')
+    questions = Question.objects.filter(tags=tag_obj)\
+        .select_related('author', 'author__profile')\
+        .prefetch_related('tags')\
+        .annotate(num_answers=Count('answer'))\
+        .order_by('-created_at')
     page, page_range = paginate(questions, request, per_page=10)
     context = {
         'page': page, 
