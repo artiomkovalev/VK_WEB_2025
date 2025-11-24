@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Log In</h2>
+<div class="error-box">
+    Sorry, wrong password!
+</div>
+<form method="POST" action="{% url 'login' %}">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="login">Login</label>
+        <input type="text" id="login" required>
+    </div>
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required>
+    </div>
+    <button type="submit" class="btn">Log in!</button>
+    <a href="/signup" style="margin-left: 15px;">Create new account</a>
+</form>
+{% endblock %}

@@ -14,8 +14,7 @@ SECRET_KEY = 'django-insecure-kn5+6e*yawv&_4gf1ziz@#xui7%%8)tap1$bj21$%ampwm0c_3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
@@ -52,6 +51,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'questions.context_processors.global_settings'
             ],
         },
     },
@@ -59,20 +59,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'askpupkin.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+
+AUTH_USER_MODEL = 'questions.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -115,3 +105,14 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'questions_db',
+        'USER': 'admin',
+        'PASSWORD': 'admin',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+    }
+}
