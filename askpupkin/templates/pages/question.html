@@ -5,7 +5,11 @@
 {% block content %}
 <div class="question-item">
     <div class="vote-controls">
-        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
+        {% if question.author.avatar %}
+        <img src="{{ question.author.avatar.url }}" alt="avatar" class="avatar-image">
+        {% else %}
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar-image">
+        {% endif %}
         <a href="#" class="vote-arrow">▲</a>
         <span class="vote-count">{{ question.rating }}</span>
         <a href="#" class="vote-arrow">▼</a>
@@ -28,7 +32,9 @@
 <hr id="answers">
 
 {% for answer in answers %}
-{% include 'blocks/answer_item.html' %}
+<div class="question-item" id="answer-{{ answer.id }}">
+    {% include 'blocks/answer_item.html' %}
+</div>
 {% endfor %}
 
 {% with page=answers %}
@@ -37,12 +43,16 @@
 
 <hr>
 
-<h3>Your answer</h3>
+{% if user.is_authenticated %}
 <form method="POST" action="{% url 'question' question_id=question.id %}">
     {% csrf_token %}
     <div class="form-group">
-        <textarea rows="8" required></textarea>
+        {{ form.text }}
+        <div class="error-message">{{ form.text.errors }}</div>
     </div>
     <button type="submit" class="btn">Answer</button>
 </form>
+{% else %}
+<p><a href="{% url 'login' %}?continue={{ request.path }}">Log in</a> to answer.</p>
+{% endif %}
 {% endblock %}

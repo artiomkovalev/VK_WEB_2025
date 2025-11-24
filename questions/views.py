@@ -2,7 +2,11 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
 from .models import Question, Answer, Tag, User
-from django.contrib.auth import logout as _logout
+from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
+from django.urls import reverse
+from django.contrib.auth import authenticate, login as _login, logout as _logout
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 
 def get_global_context(request):
     return {
@@ -71,39 +75,119 @@ def tag(request, tag_name):
     context.update(get_global_context(request))
     return render(request, 'pages/index.html', context)
 
+@require_http_methods(['GET', 'POST'])
 def question(request, question_id):
     question_item = get_object_or_404(
         Question.objects.select_related('author').prefetch_related('tags'), 
         pk=question_id
     )
-    answers = Answer.objects.filter(question=question_item)\
-        .select_related('author')\
-        .order_by('-created_at')
+
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return redirect(f"{reverse('login')}?next={request.path}")
+        
+        form = AnswerForm(request.POST)
+        if form.is_valid():
+            answer = form.save(commit=False)
+            answer.author = request.user
+            answer.question = question_item
+            answer.save()
+            total_answers = question_item.answer_set.count()
+            page_num = (total_answers // 5) + 1 if total_answers % 5 != 0 else (total_answers // 5)
+            return redirect(f"{question_item.get_absolute_url()}?page={page_num}#answer-{answer.id}")
+    else:
+        form = AnswerForm()
+
+    answers = Answer.objects.filter(question=question_item).select_related('author').order_by('created_at')
+    
     page, page_range = paginate(answers, request, per_page=5)
+    
     context = {
         'question': question_item, 
         'answers': page, 
-        'page_range': page_range
+        'page_range': page_range,
+        'form': form
     }
     context.update(get_global_context(request))
     return render(request, 'pages/question.html', context)
 
+@require_http_methods(['GET', 'POST'])
 def login(request):
-    context = get_global_context(request)
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user:
+                _login(request, user)
+                redirect_url = request.POST.get('continue') or request.GET.get('continue') or 'index'
+                return redirect(redirect_url)
+            else:
+                form.add_error(None, 'Invalid login or password')
+    else:
+        form = LoginForm()
+
+    context = {'form': form}
+    context.update(get_global_context(request))
     return render(request, 'pages/login.html', context)
 
+@require_http_methods(['GET', 'POST'])
 def signup(request):
-    context = get_global_context(request)
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = form.save()
+            _login(request, user)
+            return redirect('index')
+    else:
+        form = RegistrationForm()
+        
+    context = {'form': form}
+    context.update(get_global_context(request))
     return render(request, 'pages/signup.html', context)
 
+@login_required(login_url='login')
+@require_http_methods(['GET', 'POST'])
 def ask(request):
-    context = get_global_context(request)
+    if request.method == 'POST':
+        form = QuestionForm(request.POST)
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.author = request.user
+            question.save()
+
+            tag_names = form.cleaned_data['tags']
+            for name in tag_names:
+                tag, _ = Tag.objects.get_or_create(name=name)
+                question.tags.add(tag)
+            
+            return redirect(question)
+    else:
+        form = QuestionForm()
+
+    context = {'form': form}
+    context.update(get_global_context(request))
     return render(request, 'pages/ask.html', context)
-    
+
+@login_required(login_url='login')
+@require_http_methods(['GET', 'POST'])
 def settings(request):
-    context = get_global_context(request)
+    if request.method == 'POST':
+        form = SettingsForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('settings') 
+    else:
+        form = SettingsForm(instance=request.user)
+    
+    context = {'form': form}
+    context.update(get_global_context(request))
     return render(request, 'pages/settings.html', context)
 
 def logout(request):
     _logout(request)
+    next_page = request.GET.get('next')
+    if next_page:
+        return redirect(next_page)
     return redirect('index')

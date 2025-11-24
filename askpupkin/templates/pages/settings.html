@@ -7,28 +7,30 @@
 <form method="POST" action="{% url 'settings' %}" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="form-group">
-        <label for="login">Login</label>
-        <input type="text" id="login" value="{{ user.username }}" readonly>
+        <label>Login</label>
+        <input type="text" value="{{ user.username }}" readonly disabled class="form-control">
     </div>
     <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" value="{{ user.email }}">
-        <div class="error-message">This email is already in use.</div>
+        <label for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email }}
+        <div class="error-message">{{ form.email.errors }}</div>
     </div>
     <div class="form-group">
-        <label for="nickname">Nickname</label>
-        <input type="text" id="nickname" value="{{ user.first_name }}">
+        <label for="{{ form.first_name.id_for_label }}">Nickname</label>
+        {{ form.first_name }}
+        <div class="error-message">{{ form.first_name.errors }}</div>
     </div>
     <div class="form-group">
         <label>Avatar</label>
         <div>
-            {% if user.profile.avatar %}
-                <img class="avatar" src="{{ user.profile.avatar.url }}" alt="avatar">
+            {% if user.avatar %}
+            <img class="avatar" src="{{ user.avatar.url }}" alt="avatar">
             {% else %}
-                <img class="avatar" src="{% static 'images/cat.jpg' %}" alt="avatar">
+            <img class="avatar" src="{% static 'images/cat.jpg' %}" alt="avatar">
             {% endif %}
         </div>
-        <input type="file" id="avatar" name="avatar">
+        {{ form.avatar }}
+        {{ form.avatar.errors }}
     </div>
     <button type="submit" class="btn">Save</button>
 </form>

@@ -2,36 +2,22 @@
 
 {% block content %}
 <h2>Registration</h2>
-<div class="error-box">
-    Sorry, this email address already registered!
-</div>
+
 <form method="POST" action="{% url 'signup' %}" enctype="multipart/form-data">
     {% csrf_token %}
+    {% for field in form %}
     <div class="form-group">
-        <label for="login">Login</label>
-        <input type="text" id="login" name="login" required>
-        <div class="error-message">Choose a unique login.</div>
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+        <div class="error-message">
+            {% for error in field.errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
-    <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required>
-    </div>
-    <div class="form-group">
-        <label for="nickname">Nickname</label>
-        <input type="text" id="nickname" name="nickname" required>
-    </div>
-    <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required>
-    </div>
-    <div class="form-group">
-        <label for="repeatPassword">Repeat password</label>
-        <input type="password" id="repeatPassword" name="password_repeat" required>
-    </div>
-    <div class="form-group">
-        <label for="avatar">Upload avatar</label>
-        <input type="file" id="avatar" name="avatar">
-    </div>
+    {% endfor %}
     <button type="submit" class="btn">Register!</button>
     <a href="{% url 'login' %}" style="margin-left: 15px;">Have an account?</a>
 </form>
