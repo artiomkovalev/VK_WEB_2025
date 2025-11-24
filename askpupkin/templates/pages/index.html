@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+{% if tag_name %}
+<h2>Tag: {{ tag_name }}</h2>
+{% else %}
+<div class="questions-header">
+    <h2>{{ title }}</h2>
+    {% if title == 'New Questions' %}
+    <a href="{% url 'hot' %}">Hot questions</a>
+    {% else %}
+    <a href="{% url 'index' %}">New questions</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% for question in page %}
+{% include 'blocks/question_item.html' %}
+{% endfor %}
+
+{% include 'blocks/pagination.html' %}
+{% endblock %}

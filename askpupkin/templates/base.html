@@ -34,9 +34,9 @@
                 {% if user.is_authenticated %}
                 <div class="avatar-container">
                     {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="avatar" class="avatar">
+                    <img src="{{ user.profile.avatar.url }}" alt="avatar" class="avatar">
                     {% else %}
-                        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar">
+                    <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar">
                     {% endif %}
                 </div>
                 <div class="user-block-main">
@@ -47,10 +47,10 @@
                     </div>
                 </div>
                 {% else %}
-                    <div class="user-block-actions">
-                        <a href="{% url 'login' %}">log in</a>
-                        <a href="{% url 'signup' %}">register</a>
-                    </div>
+                <div class="user-block-actions">
+                    <a href="{% url 'login' %}">log in</a>
+                    <a href="{% url 'signup' %}">register</a>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -61,26 +61,7 @@
             {% block content %}
             {% endblock %}
         </main>
-        <aside class="sidebar">
-            <div class="sidebar-block">
-                <h3>Popular Tags</h3>
-                <div class="tags">
-                    {% for tag in popular_tags %}
-                        <a href="{% url 'tag' tag_name=tag.name %}">{{ tag.name }}</a>
-                    {% empty %}
-                        <p>No tags</p>
-                    {% endfor %}
-                </div>
-            </div>
-            <div class="sidebar-block">
-                <h3>Best Members</h3>
-                <ul>
-                    <li><a href="#">Mr. Freeman</a></li>
-                    <li><a href="#">Dr. House</a></li>
-                    <li><a href="#">Bender</a></li>
-                </ul>
-            </div>
-        </aside>
+        {% include 'blocks/aside.html' %}
     </div>
 
 </body>

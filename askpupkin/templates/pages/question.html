@@ -19,34 +19,25 @@
             <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
             {% endfor %}
         </div>
+        <span class="author">
+            Author: <a href="#">{{ question.author.user.username }}</a>
+        </span>
     </div>
 </div>
 
 <hr id="answers">
 
 {% for answer in answers %}
-<div class="question-item">
-    <div class="vote-controls">
-        <img src="{% static 'images/cat.jpg' %}" alt="avatar">
-        <a href="#" class="vote-arrow">▲</a>
-        <span class="vote-count">{{ answer.rating }}</span>
-        <a href="#" class="vote-arrow">▼</a>
-    </div>
-    <div class="question-content">
-        <p>{{ answer.text }}</p>
-        <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct %}checked{% endif %}> <label
-            for="correct_{{ answer.id }}">Correct!</label>
-    </div>
-</div>
+{% include 'blocks/answer_item.html' %}
 {% endfor %}
 
 {% with page=answers %}
-{% include '_pagination.html' %}
+{% include 'blocks/pagination.html' %}
 {% endwith %}
 
 <hr>
 
-<h3>Your Answer</h3>
+<h3>Your answer</h3>
 <form method="POST" action="{% url 'question' question_id=question.id %}">
     {% csrf_token %}
     <div class="form-group">

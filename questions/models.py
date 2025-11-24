@@ -3,20 +3,19 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.db.models import Count
 
-class QuestionManager(models.Manager):
-    def new(self):
-        return self.order_by('-created_at')
-
-    def hot(self):
-        return self.order_by('-rating')
+class ProfileManager(models.Manager):
+    def best(self):
+        return self.annotate(num_answers=Count('answer')).order_by('-num_answers')[:5]
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='avatars/%Y/%m/%d/', blank=True, null=True)
+    
+    objects = ProfileManager()
 
     def __str__(self):
         return f"Профиль пользователя #{self.user.username}"
-    
+
 class TagManager(models.Manager):
     def popular(self):
         return self.annotate(num_questions=Count('question')).order_by('-num_questions')[:10]
@@ -27,6 +26,19 @@ class Tag(models.Model):
 
     def __str__(self):
         return f"#{self.name}"
+
+class QuestionManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset()\
+            .select_related('author', 'author__user')\
+            .prefetch_related('tags')\
+            .annotate(num_answers=Count('answer'))
+    
+    def new(self):
+        return self.get_queryset().order_by('-created_at')
+
+    def hot(self):
+        return self.get_queryset().order_by('-rating')
 
 class Question(models.Model):
     author = models.ForeignKey(Profile, on_delete=models.CASCADE)

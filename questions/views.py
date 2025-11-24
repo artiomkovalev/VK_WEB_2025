@@ -1,6 +1,14 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import Question, Answer, Tag
+from django.db.models import Count
+from .models import Question, Answer, Tag, Profile
+from django.contrib.auth import logout as _logout
+
+def get_global_context(request):
+    return {
+        'popular_tags': Tag.objects.popular(),
+        'best_members': Profile.objects.best(),
+    }
 
 def paginate(objects_list, request, per_page=10):
     paginator = Paginator(objects_list, per_page)
@@ -28,33 +36,68 @@ def paginate(objects_list, request, per_page=10):
 def index(request):
     questions = Question.objects.new()
     page, page_range = paginate(questions, request, per_page=10)
-    return render(request, 'index.html', {'page': page, 'title': 'New Questions', 'page_range': page_range})
+    context = {
+        'page': page, 
+        'title': 'New Questions', 
+        'page_range': page_range
+    }
+    context.update(get_global_context(request))
+    return render(request, 'pages/index.html', context)
 
 def hot(request):
     questions = Question.objects.hot()
     page, page_range = paginate(questions, request, per_page=10)
-    return render(request, 'index.html', {'page': page, 'title': 'Hot Questions', 'page_range': page_range})
+    context = {
+        'page': page, 
+        'title': 'Hot Questions', 
+        'page_range': page_range
+    }
+    context.update(get_global_context(request))
+    return render(request, 'pages/index.html', context)
 
 def tag(request, tag_name):
-    tag = get_object_or_404(Tag, name=tag_name)
-    questions = Question.objects.filter(tags=tag).order_by('-created_at')
+    tag_obj = get_object_or_404(Tag, name=tag_name)
+    questions = Question.objects.filter(tags=tag_obj).select_related('author__user').prefetch_related('tags').annotate(num_answers=Count('answer')).order_by('-created_at')
     page, page_range = paginate(questions, request, per_page=10)
-    return render(request, 'index.html', {'page': page, 'tag_name': tag_name, 'page_range': page_range})
+    context = {
+        'page': page, 
+        'tag_name': tag_name, 
+        'page_range': page_range
+    }
+    context.update(get_global_context(request))
+    return render(request, 'pages/index.html', context)
 
 def question(request, question_id):
-    question_item = get_object_or_404(Question, pk=question_id)
-    answers = Answer.objects.filter(question=question_item).order_by('-created_at')
+    question_item = get_object_or_404(
+        Question.objects.select_related('author__user').prefetch_related('tags'), 
+        pk=question_id
+    )
+    answers = Answer.objects.filter(question=question_item).select_related('author__user').order_by('-created_at')
     page, page_range = paginate(answers, request, per_page=5)
-    return render(request, 'question.html', {'question': question_item, 'answers': page, 'page_range': page_range})
+    context = {
+        'question': question_item, 
+        'answers': page, 
+        'page_range': page_range
+    }
+    context.update(get_global_context(request))
+    return render(request, 'pages/question.html', context)
 
 def login(request):
-    return render(request, 'login.html')
+    context = get_global_context(request)
+    return render(request, 'pages/login.html', context)
 
 def signup(request):
-    return render(request, 'signup.html')
+    context = get_global_context(request)
+    return render(request, 'pages/signup.html', context)
 
 def ask(request):
-    return render(request, 'ask.html')
+    context = get_global_context(request)
+    return render(request, 'pages/ask.html', context)
     
 def settings(request):
-    return render(request, 'settings.html')
+    context = get_global_context(request)
+    return render(request, 'pages/settings.html', context)
+
+def logout(request):
+    _logout(request)
+    return redirect('index')

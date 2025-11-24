@@ -1,21 +1,4 @@
-{% extends 'base.html' %}
-
 {% load static %}
-
-{% block content %}
-{% if tag_name %}
-<h2>Tag: {{ tag_name }}</h2>
-{% else %}
-<div class="questions-header">
-    <h2>{{ title }}</h2>
-    {% if title == 'New Questions' %}
-    <a href="{% url 'hot' %}">Hot questions</a>
-    {% else %}
-    <a href="{% url 'index' %}">New questions</a>
-    {% endif %}
-</div>
-{% endif %}
-{% for question in page %}
 <div class="question-item">
     <div class="vote-controls">
         <img src="{% static 'images/cat.jpg' %}" alt="avatar">
@@ -27,18 +10,18 @@
         <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
         <p>{{ question.text|truncatechars:80 }}</p>
         <div class="question-meta">
-            <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.answer_set.count }})</a>
+            <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.num_answers }})</a>
+            
             <span class="tags">
                 Tags:
                 {% for tag in question.tags.all %}
-                <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
+                <a href="{% url 'tag' tag_name=tag.name %}">{{ tag.name }}</a>
                 {% endfor %}
+            </span>
+
+            <span class="author">
+                Author: <a href="#">{{ question.author.user.username }}</a>
             </span>
         </div>
     </div>
 </div>
-{% endfor %}
-
-{% include '_pagination.html' %}
-
-{% endblock %}
