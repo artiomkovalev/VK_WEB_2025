@@ -10,6 +10,10 @@
     font-family: 'Inter', sans-serif;
 }
 
+h2, h3 {
+    word-break: break-word;
+}
+
 body {
     background-color: #f4f4f4;
     color: #333;

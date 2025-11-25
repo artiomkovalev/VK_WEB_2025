@@ -32,9 +32,7 @@
 <hr id="answers">
 
 {% for answer in answers %}
-<div class="question-item" id="answer-{{ answer.id }}">
-    {% include 'blocks/answer_item.html' %}
-</div>
+{% include 'blocks/answer_item.html' %}
 {% endfor %}
 
 {% with page=answers %}
@@ -44,7 +42,7 @@
 <hr>
 
 {% if user.is_authenticated %}
-<form method="POST" action="{% url 'question' question_id=question.id %}">
+<form method="POST" action="{% url 'add_answer' question_id=question.id %}">
     {% csrf_token %}
     <div class="form-group">
         {{ form.text }}
@@ -53,6 +51,6 @@
     <button type="submit" class="btn">Answer</button>
 </form>
 {% else %}
-<p><a href="{% url 'login' %}?continue={{ request.path }}">Log in</a> to answer.</p>
+<p><a href="{% url 'login' %}?next={{ request.path }}">Log in</a> to answer.</p>
 {% endif %}
 {% endblock %}

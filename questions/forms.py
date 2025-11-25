@@ -1,31 +1,47 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from .models import Question, Answer
+from .validators import validate_file_size
+
 
 User = get_user_model()
 
-class LoginForm(forms.Form):
-    username = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'Enter login'}))
+class LoginForm(AuthenticationForm):
+    username = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Enter login'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'placeholder': 'Enter password'}))
 
-    def clean(self):
-        return super().clean()
-
 class RegistrationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        help_text="Password must be at least 8 characters long and not too common"
+    )
     password_repeat = forms.CharField(widget=forms.PasswordInput)
-    upload_avatar = forms.ImageField(required=False, label="Upload avatar")
+    upload_avatar = forms.ImageField(required=False, label="Upload avatar", validators=[validate_file_size])
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name']
+    
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        user = self.instance
+        user.username = self.cleaned_data.get('username')
+        user.email = self.cleaned_data.get('email')
+        
+        if password:
+            validate_password(password, user=user)
+            
+        return password
 
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         password_repeat = cleaned_data.get("password_repeat")
 
-        if password != password_repeat:
+        if password and password_repeat and password != password_repeat:
             self.add_error('password_repeat', "Passwords do not match!")
         
         return cleaned_data
@@ -40,7 +56,9 @@ class RegistrationForm(forms.ModelForm):
         return user
 
 class SettingsForm(forms.ModelForm):
-    first_name = forms.CharField(label='Nickname', required=False) 
+    email = forms.EmailField(required=True, widget=forms.EmailInput)
+    first_name = forms.CharField(label='First name', required=False)
+    avatar = forms.ImageField(required=False, validators=[validate_file_size])
 
     class Meta:
         model = User
@@ -63,7 +81,12 @@ class QuestionForm(forms.ModelForm):
             return []
 
         tag_list = [t.strip() for t in tags_str.split(',') if t.strip()]
-        return tag_list
+        for tag in tag_list:
+            if len(tag) > 50:
+                raise ValidationError(
+                    f'Tag "{tag}" is too long. Each tag must be 50 characters or less'
+                )
+        return list(set(tag_list))
 
 class AnswerForm(forms.ModelForm):
     class Meta:
