@@ -9,6 +9,9 @@ from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from .models import Question, Answer, Tag, User
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
 
+QUESTIONS_PER_PAGE = 10
+ANSWERS_PER_PAGE = 5
+
 def paginate(objects_list, request, per_page=10):
     paginator = Paginator(objects_list, per_page)
     page_number = request.GET.get('page')
@@ -43,11 +46,11 @@ class BaseQuestionListView(SidebarMixin, ListView):
     model = Question
     template_name = 'pages/index.html'
     context_object_name = 'page'
-    paginate_by = 10 
+    paginate_by = QUESTIONS_PER_PAGE
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        queryset = self.get_queryset()
+        queryset = self.object_list 
         page, page_range = paginate(queryset, self.request, self.paginate_by)
         context['page'] = page
         context['page_range'] = page_range
@@ -96,11 +99,9 @@ class QuestionDetailView(SidebarMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        answers = Answer.objects.filter(question=self.object)\
-            .select_related('author')\
-            .order_by('created_at')
+        answers = self.object.answer_set.select_related('author').order_by('created_at')
         
-        page, page_range = paginate(answers, self.request, per_page=5)
+        page, page_range = paginate(answers, self.request, per_page=ANSWERS_PER_PAGE)
         
         context['answers'] = page
         context['page_range'] = page_range
@@ -114,19 +115,18 @@ class AddAnswerView(LoginRequiredMixin, SidebarMixin, CreateView):
 
     def form_valid(self, form):
         question = get_object_or_404(Question, pk=self.kwargs['question_id'])
-        answer = form.save(commit=False)
-        answer.author = self.request.user
-        answer.question = question
-        answer.save()
+        answer = form.save(user=self.request.user, question=question)
         total_answers = question.answer_set.count()
-        page_num = (total_answers // 5) + 1 if total_answers % 5 != 0 else (total_answers // 5)
-        
+        page_num = (total_answers // ANSWERS_PER_PAGE) + 1 if total_answers % ANSWERS_PER_PAGE != 0 else (total_answers // ANSWERS_PER_PAGE)
         return redirect(f"{question.get_absolute_url()}?page={page_num}#answer-{answer.id}")
 
     def form_invalid(self, form):
-        question = get_object_or_404(Question.objects.select_related('author').prefetch_related('tags'), pk=self.kwargs['question_id'])
-        answers = Answer.objects.filter(question=question).select_related('author').order_by('created_at')
-        page, page_range = paginate(answers, self.request, per_page=5)
+        question = get_object_or_404(
+            Question.objects.select_related('author').prefetch_related('tags'), 
+            pk=self.kwargs['question_id']
+        )
+        answers = question.answer_set.select_related('author').order_by('created_at')
+        page, page_range = paginate(answers, self.request, per_page=ANSWERS_PER_PAGE)
         context = self.get_context_data(
             question=question,
             answers=page,
@@ -141,22 +141,7 @@ class AskView(LoginRequiredMixin, SidebarMixin, CreateView):
     template_name = 'pages/ask.html'
 
     def form_valid(self, form):
-        question = form.save(commit=False)
-        question.author = self.request.user
-        question.save()
-        tag_names = form.cleaned_data['tags']
-        if tag_names:
-            Tag.objects.bulk_create(
-                [Tag(name=name) for name in tag_names],
-                ignore_conflicts=True
-            )
-            tags = Tag.objects.filter(name__in=tag_names)
-            QuestionTag = Question.tags.through
-            QuestionTag.objects.bulk_create([
-                QuestionTag(question_id=question.id, tag_id=tag.id)
-                for tag in tags
-            ], ignore_conflicts=True)
-            
+        question = form.save(user=self.request.user)
         return redirect(question)
 
 class SettingsView(LoginRequiredMixin, SidebarMixin, UpdateView):
