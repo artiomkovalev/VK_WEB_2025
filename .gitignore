@@ -93,3 +93,6 @@ media
 .idea
 
 venv/
+
+media/
+avatars/

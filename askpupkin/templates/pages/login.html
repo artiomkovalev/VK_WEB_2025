@@ -2,20 +2,44 @@
 
 {% block content %}
 <h2>Log In</h2>
+{% if form.non_field_errors %}
 <div class="error-box">
-    Sorry, wrong password!
+    {% for error in form.non_field_errors %}
+    <div>{{ error }}</div>
+    {% endfor %}
 </div>
+{% endif %}
+
 <form method="POST" action="{% url 'login' %}">
     {% csrf_token %}
+
+    {% if request.GET.next %}
+    <input type="hidden" name="next" value="{{ request.GET.next }}">
+    {% endif %}
     <div class="form-group">
-        <label for="login">Login</label>
-        <input type="text" id="login" required>
+        <label for="{{ form.username.id_for_label }}">Login</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+        <div class="error-message">
+            {% for error in form.username.errors %}
+            <span style="display: block;">{{ error }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
     <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" required>
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+        <div class="error-message">
+            {% for error in form.password.errors %}
+            <span style="display: block;">{{ error }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
+
     <button type="submit" class="btn">Log in!</button>
-    <a href="/signup" style="margin-left: 15px;">Create new account</a>
+    <a href="{% url 'signup' %}" style="margin-left: 15px;">Create new account</a>
 </form>
 {% endblock %}

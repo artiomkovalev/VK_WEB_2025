@@ -43,7 +43,7 @@
                     <span>{{ user.username }}</span>
                     <div class="user-block-actions">
                         <a href="{% url 'settings' %}">settings</a>
-                        <a href="{% url 'logout' %}">log out</a>
+                        <a href="{% url 'logout' %}?next={{ request.path }}">log out</a>
                     </div>
                 </div>
                 {% else %}
