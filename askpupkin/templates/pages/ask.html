@@ -4,18 +4,23 @@
     <h2>New Question</h2>
     <form method="POST" action="{% url 'ask' %}">
         {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="error-box">{{ form.non_field_errors }}</div>
+        {% endif %}
         <div class="form-group">
-            <label for="title">Title</label>
-            <input type="text" id="title" name="title" placeholder="How to build a moon park?" required>
-            <div class="error-message">This field is required.</div>
+            <label for="{{ form.title.id_for_label }}">Title</label>
+            {{ form.title }}
+            <div class="error-message">{{ form.title.errors }}</div>
         </div>
         <div class="form-group">
-            <label for="text">Text</label>
-            <textarea id="text" name="text" rows="8" required></textarea>
+            <label for="{{ form.text.id_for_label }}">Text</label>
+            {{ form.text }}
+            <div class="error-message">{{ form.text.errors }}</div>
         </div>
         <div class="form-group">
-            <label for="tags">Tags</label>
-            <input type="text" id="tags" name="tags" placeholder="moon, park, puzzle">
+            <label for="{{ form.tags.id_for_label }}">Tags</label>
+            {{ form.tags }}
+            <div class="error-message">{{ form.tags.errors }}</div>
         </div>
         <button type="submit" class="btn">ASK!</button>
     </form>
