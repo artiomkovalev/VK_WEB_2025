@@ -1,21 +1,21 @@
 {% load static %}
-<div class="question-item">
+<div class="question-item" data-question-id="{{ question.id }}">
     <div class="vote-controls">
         {% if question.author.avatar %}
         <img src="{{ question.author.avatar.url }}" alt="avatar" class="avatar-image">
         {% else %}
         <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar-image">
         {% endif %}
-        <a href="#" class="vote-arrow">▲</a>
+        <a href="#" class="vote-arrow js-vote" data-vote-type="up">▲</a>
         <span class="vote-count">{{ question.rating }}</span>
-        <a href="#" class="vote-arrow">▼</a>
+        <a href="#" class="vote-arrow js-vote" data-vote-type="down">▼</a>
     </div>
     <div class="question-content">
         <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
         <p>{{ question.text|truncatechars:80 }}</p>
         <div class="question-meta">
             <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.num_answers }})</a>
-            
+
             <span class="tags">
                 Tags:
                 {% for tag in question.tags.all %}

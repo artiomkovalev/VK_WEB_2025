@@ -17,7 +17,16 @@
                 Author: <a href="#">{{ answer.author.username }}</a>
             </span>
         </div>
-        <input type="checkbox" id="correct_{{ answer.id }}" {% if answer.is_correct %}checked{% endif %}>
-        <label for="correct_{{ answer.id }}">Correct!</label>
+        <div class="correct-answer-block">
+            {% if user.is_authenticated and user == answer.question.author %}
+            <input type="checkbox" id="correct_{{ answer.id }}" class="js-correct-checkbox"
+                data-answer-id="{{ answer.id }}" data-question-id="{{ answer.question.id }}" {% if answer.is_correct%}checked{% endif %}>
+            <label for="correct_{{ answer.id }}">Correct!</label>
+            {% else %}
+            {% if answer.is_correct %}
+            <span style="color: green; font-weight: bold;">✔ correct</span>
+            {% endif %}
+            {% endif %}
+        </div>
     </div>
 </div>

@@ -1,12 +1,14 @@
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
-from .models import Question, Answer, Tag, User
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
+from django.http import JsonResponse
+from .models import Question, Answer, Tag, User, QuestionLike, AnswerLike
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
 
 def paginate(objects_list, request, per_page=10):
@@ -190,3 +192,42 @@ class UserLoginView(SidebarMixin, LoginView):
 class UserLogoutView(LogoutView):
     def get_next_page(self):
         return self.request.GET.get('next') or reverse('index')
+    
+class VoteView(LoginRequiredMixin, View):
+
+    def post(self, request):
+        question_id = request.POST.get('question_id')
+        vote_type = request.POST.get('vote_type')
+        question = get_object_or_404(Question, pk=question_id)
+        value = 1 if vote_type == 'up' else -1
+        like, created = QuestionLike.objects.get_or_create(
+            user=request.user,
+            question=question,
+            defaults={'value': value}
+        )
+        if not created:
+            if like.value == value:
+                like.delete()
+            else:
+                like.value = value
+                like.save()
+        rating_result = question.questionlike_set.aggregate(rating_sum=Sum('value'))
+        new_rating = rating_result['rating_sum'] or 0
+        question.rating = new_rating
+        question.save(update_fields=['rating'])
+        return JsonResponse({'rating': new_rating})
+
+class MarkCorrectView(LoginRequiredMixin, View):
+
+    def post(self, request):
+        answer_id = request.POST.get('answer_id')
+        answer = get_object_or_404(Answer, pk=answer_id)
+        question = answer.question
+        if request.user != question.author:
+            return JsonResponse(
+                {'error': 'You\'re not the author'},
+                status=403
+            )
+        status = answer.is_correct = not answer.is_correct
+        answer.save()
+        return JsonResponse({'status': status})
