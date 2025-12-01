@@ -3,16 +3,16 @@
 {% load static %}
 
 {% block content %}
-<div class="question-item">
+<div class="question-item" data-question-id="{{ question.id }}">
     <div class="vote-controls">
         {% if question.author.avatar %}
         <img src="{{ question.author.avatar.url }}" alt="avatar" class="avatar-image">
         {% else %}
         <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar-image">
         {% endif %}
-        <a href="#" class="vote-arrow">▲</a>
+        <a href="#" class="vote-arrow js-vote" data-vote-type="up">▲</a>
         <span class="vote-count">{{ question.rating }}</span>
-        <a href="#" class="vote-arrow">▼</a>
+        <a href="#" class="vote-arrow js-vote" data-vote-type="down">▼</a>
     </div>
     <div class="question-content">
         <h2>{{ question.title }}</h2>
