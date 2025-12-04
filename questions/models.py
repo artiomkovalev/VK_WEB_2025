@@ -77,11 +77,6 @@ class Answer(models.Model):
     def __str__(self):
         return f"Answer to '{self.question.title}' (by {self.author.username})"
 
-    def save(self, *args, **kwargs):
-        if self.is_correct:
-            Answer.objects.filter(question=self.question).exclude(pk=self.pk).update(is_correct=False)
-        super().save(*args, **kwargs)
-
 class QuestionLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)

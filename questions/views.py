@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db import transaction
 from django.db.models import Count, Sum
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -218,16 +219,25 @@ class MarkCorrectView(LoginRequiredMixin, View):
 
     def post(self, request):
         answer_id = request.POST.get('answer_id')
-        answer = get_object_or_404(Answer, pk=answer_id)
+        answer = get_object_or_404(Answer.objects.select_related('question'), pk=answer_id)
         question = answer.question
         if request.user != question.author:
             return JsonResponse(
                 {'error': 'You\'re not the author'},
                 status=403
             )
-        status = answer.is_correct = not answer.is_correct
-        answer.save()
-        return JsonResponse({'status': status})
+        try:
+            with transaction.atomic():
+                if not answer.is_correct:
+                    question.answer_set.update(is_correct=False)
+                    answer.is_correct = True
+                    answer.save(update_fields=['is_correct'])
+                else:
+                    answer.is_correct = False
+                    answer.save(update_fields=['is_correct'])
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'status': answer.is_correct})
 
 class SearchSuggestionsView(View):
 
