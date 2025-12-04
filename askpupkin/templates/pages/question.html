@@ -1,56 +1,69 @@
 {% extends 'base.html' %}
-
 {% load static %}
 
 {% block content %}
-<div class="question-item" data-question-id="{{ question.id }}">
-    <div class="vote-controls">
+<div class="question-card js-vote-container" data-id="{{ question.id }}" data-type="question"
+    style="border-left: 4px solid var(--primary);">
+    <div class="vote-section">
         {% if question.author.avatar %}
-        <img src="{{ question.author.avatar.url }}" alt="avatar" class="avatar-image">
+        <img src="{{ question.author.avatar.url }}" alt="avatar" class="vote-avatar">
         {% else %}
-        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar-image">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="vote-avatar">
         {% endif %}
-        <a href="#" class="vote-arrow js-vote" data-vote-type="up">▲</a>
+        <button class="vote-btn js-vote" data-vote-type="up">▲</button>
         <span class="vote-count">{{ question.rating }}</span>
-        <a href="#" class="vote-arrow js-vote" data-vote-type="down">▼</a>
+        <button class="vote-btn js-vote" data-vote-type="down">▼</button>
     </div>
-    <div class="question-content">
-        <h2>{{ question.title }}</h2>
-        <p>{{ question.text }}</p>
-        <div class="question-meta tags">
-            Tags:
-            {% for tag in question.tags.all %}
-            <a href="{% url 'tag' tag_name=tag %}">{{ tag.name }}</a>
-            {% endfor %}
+    <div class="card-content">
+        <h1 style="font-size: 24px; margin-top: 0;">{{ question.title }}</h1>
+        <p style="font-size: 16px; line-height: 1.6;">{{ question.text }}</p>
+        <div class="card-meta">
+            <span class="tag-list">
+                {% for tag in question.tags.all %}
+                <a href="{% url 'tag' tag_name=tag.name %}" class="tag-badge">{{ tag.name }}</a>
+                {% endfor %}
+            </span>
+            <span style="margin-left: auto;">
+                Asked by <strong>{{ question.author.username }}</strong>
+            </span>
         </div>
-        <span class="author">
-            Author: <a href="#">{{ question.author.username }}</a>
-        </span>
     </div>
 </div>
 
-<hr id="answers">
+<div class="page-header">
+    <h3>{{ question.answer_set.count }} Answers</h3>
+</div>
 
-{% for answer in answers %}
-{% include 'blocks/answer_item.html' %}
-{% endfor %}
+<div id="answers">
+    {% for answer in answers %}
+    {% include 'blocks/answer_item.html' %}
+    {% empty %}
+    <p style="color: #718096;">No answers yet</p>
+    {% endfor %}
+</div>
 
 {% with page=answers %}
 {% include 'blocks/pagination.html' %}
 {% endwith %}
 
-<hr>
-
-{% if user.is_authenticated %}
-<form method="POST" action="{% url 'add_answer' question_id=question.id %}">
-    {% csrf_token %}
-    <div class="form-group">
-        {{ form.text }}
-        <div class="error-message">{{ form.text.errors }}</div>
+<div style="margin-top: 40px;">
+    {% if user.is_authenticated %}
+    <div class="sidebar-block" style="border-top: 4px solid var(--primary);">
+        <h3>Your answer</h3>
+        <form method="POST" action="{% url 'add_answer' question_id=question.id %}">
+            {% csrf_token %}
+            <div class="form-group">
+                {{ form.text }}
+                <div class="error-message">{{ form.text.errors }}</div>
+            </div>
+            <button type="submit" class="btn">Answer</button>
+        </form>
     </div>
-    <button type="submit" class="btn">Answer</button>
-</form>
-{% else %}
-<p><a href="{% url 'login' %}?next={{ request.path }}">Log in</a> to answer.</p>
-{% endif %}
+    {% else %}
+    <div class="error-box">
+        <a href="{% url 'login' %}?next={{ request.path }}" style="font-weight: bold;">Log in</a> or
+        <a href="{% url 'signup' %}" style="font-weight: bold;">Register</a> to post an answer.
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

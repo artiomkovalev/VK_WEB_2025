@@ -1,32 +1,36 @@
 {% load static %}
-<div class="question-item">
-    <div class="vote-controls">
+<div class="question-card js-vote-container" data-id="{{ answer.id }}" data-type="answer" id="answer-{{ answer.id }}">
+    <div class="vote-section">
         {% if answer.author.avatar %}
-        <img src="{{ answer.author.avatar.url }}" alt="avatar" class="avatar-image">
+        <img src="{{ answer.author.avatar.url }}" alt="avatar" class="vote-avatar">
         {% else %}
-        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar-image">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="vote-avatar">
         {% endif %}
-        <a href="#" class="vote-arrow">▲</a>
+
+        <button class="vote-btn js-vote" data-vote-type="up">▲</button>
         <span class="vote-count">{{ answer.rating }}</span>
-        <a href="#" class="vote-arrow">▼</a>
+        <button class="vote-btn js-vote" data-vote-type="down">▼</button>
     </div>
-    <div class="question-content">
-        <p>{{ answer.text }}</p>
-        <div class="question-meta">
-            <span class="author">
-                Author: <a href="#">{{ answer.author.username }}</a>
+
+    <div class="card-content">
+        <p class="card-text">{{ answer.text }}</p>
+
+        <div class="card-meta">
+            <span style="margin-right: auto;">
+                Answered by <a href="#">{{ answer.author.username }}</a>
             </span>
-        </div>
-        <div class="correct-answer-block">
-            {% if user.is_authenticated and user == answer.question.author %}
-            <input type="checkbox" id="correct_{{ answer.id }}" class="js-correct-checkbox"
-                data-answer-id="{{ answer.id }}" data-question-id="{{ answer.question.id }}" {% if answer.is_correct%}checked{% endif %}>
-            <label for="correct_{{ answer.id }}">Correct!</label>
-            {% else %}
-            {% if answer.is_correct %}
-            <span style="color: green; font-weight: bold;">✔ correct</span>
-            {% endif %}
-            {% endif %}
+
+            <div class="correct-answer-block">
+                {% if user.is_authenticated and user == answer.question.author %}
+                <input type="checkbox" id="correct_{{ answer.id }}" class="js-correct-checkbox"
+                    data-answer-id="{{ answer.id }}" data-question-id="{{ answer.question.id }}" {% if answer.is_correct%}checked{% endif %}>
+                <label for="correct_{{ answer.id }}">Mark as correct</label>
+                {% else %}
+                {% if answer.is_correct %}
+                <span class="is-correct-label">✔ Correct</span>
+                {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

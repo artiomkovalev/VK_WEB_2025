@@ -7,7 +7,7 @@
 {% else %}
 <div class="questions-header">
     <h2>{{ title }}</h2>
-    {% if title == 'New Questions' %}
+    {% if title == 'New questions' %}
     <a href="{% url 'hot' %}">Hot questions</a>
     {% else %}
     <a href="{% url 'index' %}">New questions</a>

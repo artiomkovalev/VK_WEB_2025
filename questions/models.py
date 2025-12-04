@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import UserManager as DefaultUserManager, AbstractUser
 from django.urls import reverse
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.db.models import Count
 
 class UserManager(DefaultUserManager):
@@ -48,6 +50,15 @@ class Question(models.Model):
     rating = models.IntegerField(default=0)
   
     objects = QuestionManager()
+
+    class Meta:
+        indexes = [
+            GinIndex(
+                name='question_search_idx', 
+                fields=['title', 'text'], 
+                opclasses=['gin_trgm_ops', 'gin_trgm_ops']
+            ),
+        ]
 
     def __str__(self):
         return f"{self.title} (by {self.author.username})"

@@ -1,27 +1,37 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="page-header">
     <h2>New Question</h2>
-    <form method="POST" action="{% url 'ask' %}">
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-        <div class="error-box">{{ form.non_field_errors }}</div>
-        {% endif %}
-        <div class="form-group">
-            <label for="{{ form.title.id_for_label }}">Title</label>
-            {{ form.title }}
-            <div class="error-message">{{ form.title.errors }}</div>
-        </div>
-        <div class="form-group">
-            <label for="{{ form.text.id_for_label }}">Text</label>
-            {{ form.text }}
-            <div class="error-message">{{ form.text.errors }}</div>
-        </div>
-        <div class="form-group">
-            <label for="{{ form.tags.id_for_label }}">Tags</label>
-            {{ form.tags }}
-            <div class="error-message">{{ form.tags.errors }}</div>
-        </div>
-        <button type="submit" class="btn">ASK!</button>
-    </form>
+</div>
+
+<form method="POST" action="{% url 'ask' %}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="error-box">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        <small style="color: #718096;">Be specific and imagine you're asking a question to another person</small>
+        <div class="error-message">{{ form.title.errors }}</div>
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.text.id_for_label }}">Text</label>
+        {{ form.text }}
+        <div class="error-message">{{ form.text.errors }}</div>
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.tags.id_for_label }}">Tags</label>
+        {{ form.tags }}
+        <small style="color: #718096;">Add up to 3 tags to describe what your question is about (comma
+            separated)</small>
+        <div class="error-message">{{ form.tags.errors }}</div>
+    </div>
+
+    <button type="submit" class="btn">Publish</button>
+</form>
 {% endblock %}

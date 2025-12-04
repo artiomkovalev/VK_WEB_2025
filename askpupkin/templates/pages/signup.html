@@ -1,24 +1,37 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Registration</h2>
+<div class="page-header">
+    <h2>Registration</h2>
+</div>
 
-<form method="POST" action="{% url 'signup' %}" enctype="multipart/form-data">
-    {% csrf_token %}
-    {% for field in form %}
-    <div class="form-group">
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}
-        <div class="error-message">
-            {% for error in field.errors %}
-            {{ error }}
-            {% endfor %}
-        </div>
+<div style="max-width: 500px;">
+    <form method="POST" action="{% url 'signup' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="error-box">{{ form.non_field_errors }}</div>
         {% endif %}
-    </div>
-    {% endfor %}
-    <button type="submit" class="btn">Register!</button>
-    <a href="{% url 'login' %}" style="margin-left: 15px;">Have an account?</a>
-</form>
+
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+            <small style="color: #718096; display: block; margin-top: 4px;">{{ field.help_text }}</small>
+            {% endif %}
+            {% if field.errors %}
+            <div class="error-message">
+                {% for error in field.errors %}
+                {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="btn">Register!</button>
+        <a href="{% url 'login' %}" style="margin-left: 15px; font-size: 14px;">Already have an account?</a>
+    </form>
+</div>
 {% endblock %}

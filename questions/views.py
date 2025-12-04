@@ -1,6 +1,6 @@
-import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count, Sum
 from django.contrib.auth import login as auth_login
@@ -64,7 +64,7 @@ class IndexView(BaseQuestionListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'New Questions'
+        context['title'] = 'New questions'
         return context
 
 class HotView(BaseQuestionListView):
@@ -73,7 +73,7 @@ class HotView(BaseQuestionListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Hot Questions'
+        context['title'] = 'Hot questions'
         return context
 
 class TagView(BaseQuestionListView):
@@ -179,27 +179,39 @@ class UserLogoutView(LogoutView):
         return self.request.GET.get('next') or reverse('index')
     
 class VoteView(LoginRequiredMixin, View):
-
     def post(self, request):
-        question_id = request.POST.get('question_id')
+        obj_id = request.POST.get('object_id')
+        obj_type = request.POST.get('object_type')
         vote_type = request.POST.get('vote_type')
-        question = get_object_or_404(Question, pk=question_id)
         value = 1 if vote_type == 'up' else -1
-        like, created = QuestionLike.objects.get_or_create(
-            user=request.user,
-            question=question,
-            defaults={'value': value}
-        )
-        if not created:
+
+        if obj_type == 'question':
+            obj = get_object_or_404(Question, pk=obj_id)
+            LikeModel = QuestionLike
+            field_name = 'question'
+        elif obj_type == 'answer':
+            obj = get_object_or_404(Answer, pk=obj_id)
+            LikeModel = AnswerLike
+            field_name = 'answer'
+        else:
+            return JsonResponse({'error': 'Invalid object type'}, status=400)
+
+        like_filter = {'user': request.user, field_name: obj}
+        try:
+            like = LikeModel.objects.get(**like_filter)
             if like.value == value:
                 like.delete()
             else:
                 like.value = value
                 like.save()
-        rating_result = question.questionlike_set.aggregate(rating_sum=Sum('value'))
-        new_rating = rating_result['rating_sum'] or 0
-        question.rating = new_rating
-        question.save(update_fields=['rating'])
+        except LikeModel.DoesNotExist:
+            LikeModel.objects.create(user=request.user, value=value, **{field_name: obj})
+
+        rating_result = obj.questionlike_set.aggregate(sum=Sum('value')) if obj_type == 'question' else obj.answerlike_set.aggregate(sum=Sum('value'))
+        new_rating = rating_result['sum'] or 0
+        obj.rating = new_rating
+        obj.save(update_fields=['rating'])
+
         return JsonResponse({'rating': new_rating})
 
 class MarkCorrectView(LoginRequiredMixin, View):
@@ -216,3 +228,28 @@ class MarkCorrectView(LoginRequiredMixin, View):
         status = answer.is_correct = not answer.is_correct
         answer.save()
         return JsonResponse({'status': status})
+
+class SearchSuggestionsView(View):
+
+    def get(self, request):
+        query = request.GET.get('q', '')
+
+        if len(query) < 2:
+            return JsonResponse({'results': []})
+
+        vector = SearchVector('title', weight='A') + SearchVector('text', weight='B')
+        search_query = SearchQuery(query)
+
+        questions = Question.objects.annotate(
+            rank=SearchRank(vector, search_query)
+        ).filter(rank__gte=0.1).order_by('-rank')[:5]
+
+        results = [
+            {
+                'id': q.id,
+                'title': q.title,
+                'url': q.get_absolute_url()
+            } for q in questions
+        ]
+        
+        return JsonResponse({'results': results})

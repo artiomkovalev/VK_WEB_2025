@@ -1,21 +1,21 @@
 <nav>
-    <ul class="pagination">
+    <div class="pagination">
         {% if page.has_previous %}
-            <li><a href="?page={{ page.previous_page_number }}">&laquo; Previous</a></li>
+        <a href="?page={{ page.previous_page_number }}">&laquo; Prev</a>
         {% endif %}
 
         {% for p in page_range %}
-            {% if p == page.number %}
-                <li class="active"><a href="?page={{ p }}">{{ p }}</a></li>
-            {% elif p == '...' %}
-                <li class="disabled"><span>...</span></li>
-            {% else %}
-                <li><a href="?page={{ p }}">{{ p }}</a></li>
-            {% endif %}
+        {% if p == page.number %}
+        <div class="active"><a href="#" onclick="return false;">{{ p }}</a></div>
+        {% elif p == '...' %}
+        <span>...</span>
+        {% else %}
+        <a href="?page={{ p }}">{{ p }}</a>
+        {% endif %}
         {% endfor %}
 
         {% if page.has_next %}
-        <li><a href="?page={{ page.next_page_number }}">Next &raquo;</a></li>
+        <a href="?page={{ page.next_page_number }}">Next &raquo;</a>
         {% endif %}
-    </ul>
+    </div>
 </nav>

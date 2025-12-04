@@ -10,18 +10,18 @@ function getCookie(name) {
       };
     };
   };
-  return cookieValue
+  return cookieValue;
 };
 
 const csrfToken = getCookie('csrftoken');
 
-document.querySelectorAll('.js-vote').forEach(item => {
-  item.addEventListener('click', event => {
+document.querySelectorAll('.js-vote').forEach(btn => {
+  btn.addEventListener('click', event => {
     event.preventDefault();
-    
-    const container = item.closest('.question-item');
-    const questionId = container.dataset.questionId;
-    const voteType = item.dataset.voteType;
+    const container = btn.closest('.js-vote-container');
+    const objectId = container.dataset.id;
+    const objectType = container.dataset.type;
+    const voteType = btn.dataset.voteType;
     const counter = container.querySelector('.vote-count');
 
     fetch('/vote/', {
@@ -30,7 +30,7 @@ document.querySelectorAll('.js-vote').forEach(item => {
         'Content-Type': 'application/x-www-form-urlencoded',
         'X-CSRFToken': csrfToken
       },
-      body: `question_id=${questionId}&vote_type=${voteType}`
+      body: `object_id=${objectId}&object_type=${objectType}&vote_type=${voteType}`
     })
     .then(response => {
       if (response.ok) {
@@ -56,7 +56,7 @@ document.querySelectorAll('.js-correct-checkbox').forEach(item => {
         'Content-Type': 'application/x-www-form-urlencoded',
         'X-CSRFToken': csrfToken
       },
-      body: `question_id=${questionId}&answer_id=${answerId}`
+      body: `answer_id=${answerId}`
     })
     .then(response => {
       if (response.ok) {
@@ -77,3 +77,53 @@ document.querySelectorAll('.js-correct-checkbox').forEach(item => {
     });
   });
 });
+
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+};
+
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+
+if (searchInput) {
+  searchInput.addEventListener('input', debounce((e) => {
+    const query = e.target.value.trim();
+
+    if (query.length < 2) {
+      searchResults.innerHTML = '';
+      searchResults.classList.remove('active');
+      return;
+    }
+
+    fetch(`/search/suggestions/?q=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        searchResults.innerHTML = '';
+        
+        if (data.results.length > 0) {
+          data.results.forEach(item => {
+            const link = document.createElement('a');
+            link.href = item.url;
+            link.className = 'search-result-item';
+            link.innerText = item.title;
+            searchResults.appendChild(link);
+          });
+          searchResults.classList.add('active');
+        } else {
+          searchResults.classList.remove('active');
+        }
+      })
+      .catch(error => console.error('Search error:', error));
+  }, 300));
+
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+      searchResults.classList.remove('active');
+    }
+  });
+};
