@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
@@ -9,6 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
 from django.http import JsonResponse
+from questions.services import toggle_vote
 from .models import Question, Answer, Tag, User, QuestionLike, AnswerLike
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
 
@@ -178,66 +180,79 @@ class UserLoginView(SidebarMixin, LoginView):
 class UserLogoutView(LogoutView):
     def get_next_page(self):
         return self.request.GET.get('next') or reverse('index')
-    
-class VoteView(LoginRequiredMixin, View):
-    def post(self, request):
-        obj_id = request.POST.get('object_id')
-        obj_type = request.POST.get('object_type')
+
+class BaseVoteView(LoginRequiredMixin, View):
+    model = None
+    like_model = None
+    related_field_name = None
+
+    def handle_no_permission(self):
+        return JsonResponse({'error': 'Log in to vote'}, status=401)
+
+    def post(self, request, question_id):
         vote_type = request.POST.get('vote_type')
-        value = 1 if vote_type == 'up' else -1
-
-        if obj_type == 'question':
-            obj = get_object_or_404(Question, pk=obj_id)
-            LikeModel = QuestionLike
-            field_name = 'question'
-        elif obj_type == 'answer':
-            obj = get_object_or_404(Answer, pk=obj_id)
-            LikeModel = AnswerLike
-            field_name = 'answer'
-        else:
-            return JsonResponse({'error': 'Invalid object type'}, status=400)
-
-        like_filter = {'user': request.user, field_name: obj}
+        vote_value = 1 if vote_type == 'up' else -1
+        obj = get_object_or_404(self.model, pk=question_id)
         try:
-            like = LikeModel.objects.get(**like_filter)
-            if like.value == value:
-                like.delete()
-            else:
-                like.value = value
-                like.save()
-        except LikeModel.DoesNotExist:
-            LikeModel.objects.create(user=request.user, value=value, **{field_name: obj})
+            new_rating = toggle_vote(
+                user=request.user,
+                obj=obj,
+                like_model_class=self.like_model,
+                related_field_name=self.related_field_name,
+                vote_value=vote_value
+            )
+            return JsonResponse({'rating': new_rating})
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=403)
+        except Exception as e:
+            return JsonResponse({'error': 'Something went wrong'}, status=500)
 
-        rating_result = obj.questionlike_set.aggregate(sum=Sum('value')) if obj_type == 'question' else obj.answerlike_set.aggregate(sum=Sum('value'))
-        new_rating = rating_result['sum'] or 0
-        obj.rating = new_rating
-        obj.save(update_fields=['rating'])
+class QuestionVoteView(BaseVoteView):
+    model = Question
+    like_model = QuestionLike
+    related_field_name = 'question'
 
-        return JsonResponse({'rating': new_rating})
+class AnswerVoteView(BaseVoteView):
+    model = Answer
+    like_model = AnswerLike
+    related_field_name = 'answer'
 
 class MarkCorrectView(LoginRequiredMixin, View):
 
-    def post(self, request):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Please log in'}, status=401)
+        
+        if request.method.lower() != 'post':
+            return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
         answer_id = request.POST.get('answer_id')
-        answer = get_object_or_404(Answer.objects.select_related('question'), pk=answer_id)
-        question = answer.question
-        if request.user != question.author:
-            return JsonResponse(
-                {'error': 'You\'re not the author'},
-                status=403
-            )
+
+        try:
+            self.answer = Answer.objects.select_related('question').get(pk=answer_id)
+        except Answer.DoesNotExist:
+            return JsonResponse({'error': 'Answer not found'}, status=404)
+        
+        if request.user != self.answer.question.author:
+            return JsonResponse({'error': 'You are not the author'}, status=403)
+    
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
-                if not answer.is_correct:
-                    question.answer_set.update(is_correct=False)
-                    answer.is_correct = True
-                    answer.save(update_fields=['is_correct'])
+                question = self.answer.question
+                
+                if self.answer.is_correct:
+                    self.answer.is_correct = False
+                    self.answer.save(update_fields=['is_correct'])
                 else:
-                    answer.is_correct = False
-                    answer.save(update_fields=['is_correct'])
+                    question.answer_set.exclude(pk=self.answer.pk).update(is_correct=False)
+                    self.answer.is_correct = True
+                    self.answer.save(update_fields=['is_correct'])
+            return JsonResponse({'status': self.answer.is_correct})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-        return JsonResponse({'status': answer.is_correct})
 
 class SearchSuggestionsView(View):
 

@@ -21,6 +21,7 @@ cd vk-web-1
     ```sql
     CREATE USER admin WITH PASSWORD 'admin';
     CREATE DATABASE questions_db OWNER admin;
+    CREATE EXTENSION pg_trgm;
     ```
 
 ### Настройка виртуального окружения и установка зависимостей

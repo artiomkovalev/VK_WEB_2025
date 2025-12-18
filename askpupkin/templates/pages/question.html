@@ -10,9 +10,16 @@
         {% else %}
         <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="vote-avatar">
         {% endif %}
+
+        {% if user.is_authenticated and user != question.author %}
         <button class="vote-btn js-vote" data-vote-type="up">▲</button>
+        {% endif %}
+
         <span class="vote-count">{{ question.rating }}</span>
+
+        {% if user.is_authenticated and user != question.author %}
         <button class="vote-btn js-vote" data-vote-type="down">▼</button>
+        {% endif %}
     </div>
     <div class="card-content">
         <h1 style="font-size: 24px; margin-top: 0;">{{ question.title }}</h1>
@@ -66,4 +73,9 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'js/vote.js' %}"></script>
+    <script src="{% static 'js/answers.js' %}"></script>
 {% endblock %}

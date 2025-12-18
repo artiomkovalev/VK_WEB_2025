@@ -7,9 +7,15 @@
         <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="vote-avatar">
         {% endif %}
 
+        {% if user.is_authenticated and user != answer.author %}
         <button class="vote-btn js-vote" data-vote-type="up">▲</button>
+        {% endif %}
+
         <span class="vote-count">{{ answer.rating }}</span>
+
+        {% if user.is_authenticated and user != answer.author %}
         <button class="vote-btn js-vote" data-vote-type="down">▼</button>
+        {% endif %}
     </div>
 
     <div class="card-content">
