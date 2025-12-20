@@ -1,0 +1,296 @@
+(venv) artiom@MacBook-Air-Artem-2 VK_WEB % ab -n 1000 -c 10 http://127.0.0.1/static/example.txt
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Completed 400 requests
+Completed 500 requests
+Completed 600 requests
+Completed 700 requests
+Completed 800 requests
+Completed 900 requests
+Completed 1000 requests
+Finished 1000 requests
+
+
+Server Software:        nginx/1.29.3
+Server Hostname:        127.0.0.1
+Server Port:            80
+
+Document Path:          /static/example.txt
+Document Length:        3436 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.039 seconds
+Complete requests:      1000
+Failed requests:        0
+Total transferred:      3743000 bytes
+HTML transferred:       3436000 bytes
+Requests per second:    25828.45 [#/sec] (mean)
+Time per request:       0.387 [ms] (mean)
+Time per request:       0.039 [ms] (mean, across all concurrent requests)
+Transfer rate:          94410.04 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       0
+Processing:     0    0   0.1      0       1
+Waiting:        0    0   0.1      0       1
+Total:          0    0   0.2      0       1
+
+Percentage of the requests served within a certain time (ms)
+  50%      0
+  66%      0
+  75%      0
+  80%      0
+  90%      1
+  95%      1
+  98%      1
+  99%      1
+ 100%      1 (longest request)
+
+artiom@MacBook-Air-Artem-2 VK_WEB % ab -n 1000 -c 10 http://127.0.0.1:8082/
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Completed 400 requests
+Completed 500 requests
+Completed 600 requests
+Completed 700 requests
+Completed 800 requests
+Completed 900 requests
+Completed 1000 requests
+Finished 1000 requests
+
+
+Server Software:        gunicorn
+Server Hostname:        127.0.0.1
+Server Port:            8082
+
+Document Path:          /
+Document Length:        3436 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.126 seconds
+Complete requests:      1000
+Failed requests:        0
+Total transferred:      3577000 bytes
+HTML transferred:       3436000 bytes
+Requests per second:    7934.81 [#/sec] (mean)
+Time per request:       1.260 [ms] (mean)
+Time per request:       0.126 [ms] (mean, across all concurrent requests)
+Transfer rate:          27717.58 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       0
+Processing:     0    1   0.1      1       2
+Waiting:        0    1   0.1      1       2
+Total:          1    1   0.1      1       2
+
+Percentage of the requests served within a certain time (ms)
+  50%      1
+  66%      1
+  75%      1
+  80%      1
+  90%      1
+  95%      2
+  98%      2
+  99%      2
+ 100%      2 (longest request)
+
+(venv) artiom@MacBook-Air-Artem-2 VK_WEB % ab -n 1000 -c 10 http://127.0.0.1:8081/
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Completed 400 requests
+Completed 500 requests
+Completed 600 requests
+Completed 700 requests
+Completed 800 requests
+Completed 900 requests
+Completed 1000 requests
+Finished 1000 requests
+
+
+Server Software:        gunicorn
+Server Hostname:        127.0.0.1
+Server Port:            8081
+
+Document Path:          /
+Document Length:        29 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.122 seconds
+Complete requests:      1000
+Failed requests:        0
+Total transferred:      148000 bytes
+HTML transferred:       29000 bytes
+Requests per second:    8216.72 [#/sec] (mean)
+Time per request:       1.217 [ms] (mean)
+Time per request:       0.122 [ms] (mean, across all concurrent requests)
+Transfer rate:          1187.57 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       0
+Processing:     1    1   0.2      1       2
+Waiting:        0    1   0.2      1       2
+Total:          1    1   0.2      1       2
+
+Percentage of the requests served within a certain time (ms)
+  50%      1
+  66%      1
+  75%      1
+  80%      1
+  90%      1
+  95%      2
+  98%      2
+  99%      2
+ 100%      2 (longest request)
+
+(venv) artiom@MacBook-Air-Artem-2 VK_WEB % ab -n 100 -c 10 http://127.0.0.1:8000/
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient).....done
+
+
+Server Software:        gunicorn
+Server Hostname:        127.0.0.1
+Server Port:            8000
+
+Document Path:          /
+Document Length:        14459 bytes
+
+Concurrency Level:      10
+Time taken for tests:   5.610 seconds
+Complete requests:      100
+Failed requests:        0
+Total transferred:      1475600 bytes
+HTML transferred:       1445900 bytes
+Requests per second:    17.83 [#/sec] (mean)
+Time per request:       560.980 [ms] (mean)
+Time per request:       56.098 [ms] (mean, across all concurrent requests)
+Transfer rate:          256.87 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       0
+Processing:    95  517  92.8    544     563
+Waiting:       95  517  92.7    544     563
+Total:         95  517  92.7    545     564
+
+Percentage of the requests served within a certain time (ms)
+  50%    545
+  66%    548
+  75%    551
+  80%    551
+  90%    556
+  95%    562
+  98%    563
+  99%    564
+ 100%    564 (longest request)
+
+(venv) artiom@MacBook-Air-Artem-2 VK_WEB % ab -n 100 -c 10 http://127.0.0.1/
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient).....done
+
+
+Server Software:        nginx/1.29.3
+Server Hostname:        127.0.0.1
+Server Port:            80
+
+Document Path:          /
+Document Length:        14459 bytes
+
+Concurrency Level:      10
+Time taken for tests:   5.648 seconds
+Complete requests:      100
+Failed requests:        0
+Total transferred:      1476000 bytes
+HTML transferred:       1445900 bytes
+Requests per second:    17.71 [#/sec] (mean)
+Time per request:       564.760 [ms] (mean)
+Time per request:       56.476 [ms] (mean, across all concurrent requests)
+Transfer rate:          255.22 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.2      0       2
+Processing:   100  524  95.4    557     569
+Waiting:      100  524  95.4    557     569
+Total:        100  524  95.4    557     569
+
+Percentage of the requests served within a certain time (ms)
+  50%    557
+  66%    559
+  75%    560
+  80%    560
+  90%    562
+  95%    564
+  98%    568
+  99%    569
+ 100%    569 (longest request)
+
+(venv) artiom@MacBook-Air-Artem-2 VK_WEB % ab -n 100 -c 10 http://127.0.0.1/
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient).....done
+
+
+Server Software:        nginx/1.29.3
+Server Hostname:        127.0.0.1
+Server Port:            80
+
+Document Path:          /
+Document Length:        14459 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.153 seconds
+Complete requests:      100
+Failed requests:        0
+Total transferred:      1476000 bytes
+HTML transferred:       1445900 bytes
+Requests per second:    654.18 [#/sec] (mean)
+Time per request:       15.286 [ms] (mean)
+Time per request:       1.529 [ms] (mean, across all concurrent requests)
+Transfer rate:          9429.46 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       0
+Processing:     0    2  14.6      0     147
+Waiting:        0    2  14.6      0     146
+Total:          0    2  14.6      1     147
+
+Percentage of the requests served within a certain time (ms)
+  50%      1
+  66%      1
+  75%      1
+  80%      1
+  90%      1
+  95%      1
+  98%      1
+  99%    147
+ 100%    147 (longest request)
