@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import UserManager as DefaultUserManager, AbstractUser
 from django.urls import reverse
-from django.db.models import Count
+from django.contrib.postgres.indexes import GinIndex
+from django.db.models import Count, UniqueConstraint, Q
 
 class UserManager(DefaultUserManager):
     def best(self):
@@ -49,6 +50,15 @@ class Question(models.Model):
   
     objects = QuestionManager()
 
+    class Meta:
+        indexes = [
+            GinIndex(
+                name='question_search_idx', 
+                fields=['title', 'text'], 
+                opclasses=['gin_trgm_ops', 'gin_trgm_ops']
+            ),
+        ]
+
     def __str__(self):
         return f"{self.title} (by {self.author.username})"
 
@@ -63,9 +73,17 @@ class Answer(models.Model):
     is_correct = models.BooleanField(default=False)
     rating = models.IntegerField(default=0)
 
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['question'], 
+                condition=Q(is_correct=True), 
+                name='unique_correct_answer_per_question'
+            )
+        ]
+
     def __str__(self):
         return f"Answer to '{self.question.title}' (by {self.author.username})"
-
 
 class QuestionLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

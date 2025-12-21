@@ -1,30 +1,42 @@
 {% load static %}
-<div class="question-item">
-    <div class="vote-controls">
+<div class="question-card js-vote-container" data-id="{{ question.id }}" data-type="question">
+    <div class="vote-section">
         {% if question.author.avatar %}
-        <img src="{{ question.author.avatar.url }}" alt="avatar" class="avatar-image">
+        <img src="{{ question.author.avatar.url }}" alt="avatar" class="vote-avatar">
         {% else %}
-        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="avatar-image">
+        <img src="{% static 'images/cat.jpg' %}" alt="avatar" class="vote-avatar">
         {% endif %}
-        <a href="#" class="vote-arrow">▲</a>
+
+        {% if user.is_authenticated and user != question.author %}
+        <button class="vote-btn js-vote" data-vote-type="up">▲</button>
+        {% endif %}
+
         <span class="vote-count">{{ question.rating }}</span>
-        <a href="#" class="vote-arrow">▼</a>
+
+        {% if user.is_authenticated and user != question.author %}
+        <button class="vote-btn js-vote" data-vote-type="down">▼</button>
+        {% endif %}
     </div>
-    <div class="question-content">
-        <h3><a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a></h3>
-        <p>{{ question.text|truncatechars:80 }}</p>
-        <div class="question-meta">
-            <a href="{% url 'question' question_id=question.id %}#answers">answer ({{ question.num_answers }})</a>
-            
-            <span class="tags">
-                Tags:
+
+    <div class="card-content">
+        <h3 class="card-title">
+            <a href="{% url 'question' question_id=question.id %}">{{ question.title }}</a>
+        </h3>
+        <p class="card-text">{{ question.text|truncatechars:120 }}</p>
+
+        <div class="card-meta">
+            <a href="{% url 'question' question_id=question.id %}#answers">
+                <strong>{{ question.num_answers }}</strong> answers
+            </a>
+
+            <span class="tag-list">
                 {% for tag in question.tags.all %}
-                <a href="{% url 'tag' tag_name=tag.name %}">{{ tag.name }}</a>
+                <a href="{% url 'tag' tag_name=tag.name %}" class="tag-badge">{{ tag.name }}</a>
                 {% endfor %}
             </span>
 
-            <span class="author">
-                Author: <a href="#">{{ question.author.username }}</a>
+            <span style="margin-left: auto;">
+                Asked by <a href="#">{{ question.author.username }}</a>
             </span>
         </div>
     </div>

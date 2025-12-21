@@ -1,12 +1,17 @@
+from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Count
+from django.db import transaction
+from django.db.models import Count, Sum
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
-from .models import Question, Answer, Tag, User
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
+from django.http import JsonResponse
+from questions.services import toggle_vote
+from .models import Question, Answer, Tag, User, QuestionLike, AnswerLike
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
 
 QUESTIONS_PER_PAGE = 10
@@ -62,7 +67,7 @@ class IndexView(BaseQuestionListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'New Questions'
+        context['title'] = 'New questions'
         return context
 
 class HotView(BaseQuestionListView):
@@ -71,7 +76,7 @@ class HotView(BaseQuestionListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Hot Questions'
+        context['title'] = 'Hot questions'
         return context
 
 class TagView(BaseQuestionListView):
@@ -175,3 +180,101 @@ class UserLoginView(SidebarMixin, LoginView):
 class UserLogoutView(LogoutView):
     def get_next_page(self):
         return self.request.GET.get('next') or reverse('index')
+
+class BaseVoteView(LoginRequiredMixin, View):
+    model = None
+    like_model = None
+    related_field_name = None
+
+    def handle_no_permission(self):
+        return JsonResponse({'error': 'Log in to vote'}, status=401)
+
+    def post(self, request, question_id):
+        vote_type = request.POST.get('vote_type')
+        vote_value = 1 if vote_type == 'up' else -1
+        obj = get_object_or_404(self.model, pk=question_id)
+        try:
+            new_rating = toggle_vote(
+                user=request.user,
+                obj=obj,
+                like_model_class=self.like_model,
+                related_field_name=self.related_field_name,
+                vote_value=vote_value
+            )
+            return JsonResponse({'rating': new_rating})
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=403)
+        except Exception as e:
+            return JsonResponse({'error': 'Something went wrong'}, status=500)
+
+class QuestionVoteView(BaseVoteView):
+    model = Question
+    like_model = QuestionLike
+    related_field_name = 'question'
+
+class AnswerVoteView(BaseVoteView):
+    model = Answer
+    like_model = AnswerLike
+    related_field_name = 'answer'
+
+class MarkCorrectView(LoginRequiredMixin, View):
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Please log in'}, status=401)
+        
+        if request.method.lower() != 'post':
+            return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+        answer_id = request.POST.get('answer_id')
+
+        try:
+            self.answer = Answer.objects.select_related('question').get(pk=answer_id)
+        except Answer.DoesNotExist:
+            return JsonResponse({'error': 'Answer not found'}, status=404)
+        
+        if request.user != self.answer.question.author:
+            return JsonResponse({'error': 'You are not the author'}, status=403)
+    
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                question = self.answer.question
+                
+                if self.answer.is_correct:
+                    self.answer.is_correct = False
+                    self.answer.save(update_fields=['is_correct'])
+                else:
+                    question.answer_set.exclude(pk=self.answer.pk).update(is_correct=False)
+                    self.answer.is_correct = True
+                    self.answer.save(update_fields=['is_correct'])
+            return JsonResponse({'status': self.answer.is_correct})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+class SearchSuggestionsView(View):
+
+    def get(self, request):
+        query = request.GET.get('q', '')
+
+        if len(query) < 2:
+            return JsonResponse({'results': []})
+
+        vector = SearchVector('title', weight='A') + SearchVector('text', weight='B')
+        search_query = SearchQuery(query)
+
+        questions = Question.objects.annotate(
+            rank=SearchRank(vector, search_query)
+        ).filter(rank__gte=0.1).order_by('-rank')[:5]
+
+        results = [
+            {
+                'id': q.id,
+                'title': q.title,
+                'url': q.get_absolute_url()
+            } for q in questions
+        ]
+        
+        return JsonResponse({'results': results})

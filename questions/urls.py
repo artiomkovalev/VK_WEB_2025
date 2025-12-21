@@ -12,4 +12,8 @@ urlpatterns = [
     path('login/', views.UserLoginView.as_view(), name='login'),
     path('signup/', views.UserSignupView.as_view(), name='signup'),
     path('logout/', views.UserLogoutView.as_view(), name='logout'),
+    path('question/<int:question_id>/vote/', views.QuestionVoteView.as_view(), name='vote_question'),
+    path('answer/<int:question_id>/vote/', views.AnswerVoteView.as_view(), name='vote_answer'),
+    path('search/suggestions/', views.SearchSuggestionsView.as_view(), name='search_suggestions'),
+    path('correct/', views.MarkCorrectView.as_view(), name='correct')
 ]
