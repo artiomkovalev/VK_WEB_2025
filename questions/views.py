@@ -1,3 +1,7 @@
+import jwt
+import time
+import requests
+import json
 from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -11,6 +15,9 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
 from django.http import JsonResponse
 from questions.services import toggle_vote
+from django.core.cache import cache
+from django.conf import settings
+from django.template.loader import render_to_string
 from .models import Question, Answer, Tag, User, QuestionLike, AnswerLike
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
 
@@ -43,8 +50,8 @@ def paginate(objects_list, request, per_page=10):
 class SidebarMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['popular_tags'] = Tag.objects.popular()
-        context['best_members'] = User.objects.best()
+        context['popular_tags'] = cache.get('popular_tags', [])
+        context['best_members'] = cache.get('best_members', [])
         return context
 
 class BaseQuestionListView(SidebarMixin, ListView):
@@ -111,6 +118,19 @@ class QuestionDetailView(SidebarMixin, DetailView):
         context['answers'] = page
         context['page_range'] = page_range
         context['form'] = AnswerForm()
+
+        user_id = str(self.request.user.id) if self.request.user.is_authenticated else ""
+        token = jwt.encode({
+            "sub": user_id,
+            "exp": int(time.time()) + 3600
+        }, settings.CENTRIFUGO_HMAC_SECRET, algorithm="HS256")
+        
+        context['centrifugo'] = {
+            'token': token,
+            'url': settings.CENTRIFUGO_WS_URL,
+            'channel': f"public:question_{self.object.id}"
+        }
+        
         return context
 
 class AddAnswerView(LoginRequiredMixin, SidebarMixin, CreateView):
@@ -121,6 +141,32 @@ class AddAnswerView(LoginRequiredMixin, SidebarMixin, CreateView):
     def form_valid(self, form):
         question = get_object_or_404(Question, pk=self.kwargs['question_id'])
         answer = form.save(user=self.request.user, question=question)
+
+        try:
+            answer_html = render_to_string('blocks/answer_item.html', {'answer': answer, 'user': None})
+            command = {
+                "method": "publish",
+                "params": {
+                    "channel": f"public:question_{question.id}",
+                    "data": {
+                        "html": answer_html,
+                        "author": answer.author.username
+                    }
+                }
+            }
+            headers = {
+                'Content-Type': 'application/json',
+                'X-API-Key': settings.CENTRIFUGO_API_KEY
+            }
+            requests.post(
+                settings.CENTRIFUGO_API_URL, 
+                data=json.dumps(command), 
+                headers=headers, 
+                timeout=1
+            )
+        except Exception as e:
+            print(f"Centrifugo error: {e}")
+
         total_answers = question.answer_set.count()
         page_num = (total_answers // ANSWERS_PER_PAGE) + 1 if total_answers % ANSWERS_PER_PAGE != 0 else (total_answers // ANSWERS_PER_PAGE)
         return redirect(f"{question.get_absolute_url()}?page={page_num}#answer-{answer.id}")

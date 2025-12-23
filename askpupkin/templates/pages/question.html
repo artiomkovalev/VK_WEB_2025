@@ -76,6 +76,38 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{% static 'js/vote.js' %}"></script>
-    <script src="{% static 'js/answers.js' %}"></script>
+<script src="https://unpkg.com/centrifuge@5.0.1/dist/centrifuge.js"></script>
+<script src="{% static 'js/vote.js' %}"></script>
+<script src="{% static 'js/answers.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const config = {
+            url: "{{ centrifugo.url }}",
+            token: "{{ centrifugo.token }}",
+            channel: "{{ centrifugo.channel }}"
+        };
+
+        const centrifuge = new Centrifuge(config.url, {
+            token: config.token
+        });
+
+        centrifuge.on('connected', function (ctx) {
+            console.log("Connected to Centrifugo");
+        });
+
+        const sub = centrifuge.newSubscription(config.channel);
+
+        sub.on('publication', function (ctx) {
+            const newAnswerHtml = ctx.data.html;
+            const answersContainer = document.getElementById('answers');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newAnswerHtml;
+            const newElement = tempDiv.firstElementChild;
+            answersContainer.appendChild(newElement);
+        });
+
+        sub.subscribe();
+        centrifuge.connect();
+    });
+</script>
 {% endblock %}

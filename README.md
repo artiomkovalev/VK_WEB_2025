@@ -62,10 +62,29 @@ pip install -r requirements.txt
     python manage.py fill_db 1000
     ```
 
+### Подготовка Centrifugo
+
+1. **Запустите контейнер:**
+    ```bash
+    docker run -p 8000:8000 -v ./config.json:/centrifugo/config.json centrifugo/centrifugo
+    ```
+
+### Настройка cron:
+
+1. **Откройте файл конфигурации:**
+    ```bash
+    crontab -e
+    ```
+
+2. **Добавьте в файл:**
+    ```bash
+    */10 * * * * YOUR_PATH/venv/bin/python YOUR_PATH/manage.py cache_stats >> YOUR_PATH/cron_log.log 2>&1
+    ```
+
 ### Запуск сервера
 
 ```bash
-python manage.py runserver
+python manage.py runserver 4999
 ```
 
-После этого сайт будет доступен по адресу **[http://127.0.0.1:8000/](http://127.0.0.1:8000/)**.
+После этого сайт будет доступен по адресу **[http://127.0.0.1:4999/](http://127.0.0.1:4999/)**.

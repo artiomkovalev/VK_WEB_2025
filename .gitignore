@@ -96,3 +96,5 @@ venv/
 
 media/
 avatars/
+
+django_cache/
