@@ -134,10 +134,5 @@ CACHES = {
 
 CENTRIFUGO_API_URL = "http://localhost:8000/api"
 CENTRIFUGO_WS_URL = "ws://localhost:8000/connection/websocket"
-<<<<<<< HEAD
 CENTRIFUGO_API_KEY = "api-key"
 CENTRIFUGO_HMAC_SECRET = "hmac-secret"
-=======
-CENTRIFUGO_API_KEY = "your-api-key"
-CENTRIFUGO_HMAC_SECRET = "your-hmac"
->>>>>>> 21d53f0 (fix: removed secret keys)
