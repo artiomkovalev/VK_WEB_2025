@@ -25,10 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
               link.innerText = item.title;
               searchResults.appendChild(link);
             });
-            searchResults.classList.add('active');
           } else {
-            searchResults.classList.remove('active');
-          }
+            const noRes = document.createElement('div');
+            noRes.className = 'search-result-item';
+            noRes.style.cursor = 'default';
+            noRes.style.color = '#718096';
+            noRes.innerText = 'No results found';
+            searchResults.appendChild(noRes);
+          };
+          searchResults.classList.add('active');
         })
         .catch(error => console.error('Search error:', error));
     }, 300));

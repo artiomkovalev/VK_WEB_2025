@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
           if (data) {
             counter.innerText = data.rating;
+            if (btn.classList.contains('active')) {
+              btn.classList.remove('active');
+            } else {
+              container.querySelectorAll('.js-vote').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+            }
           }
         })
         .catch(error => {

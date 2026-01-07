@@ -8,13 +8,13 @@
         {% endif %}
 
         {% if user.is_authenticated and user != question.author %}
-        <button class="vote-btn js-vote" data-vote-type="up">▲</button>
+        <button class="vote-btn js-vote {% if question.user_vote == 1 %}active{% endif %}" data-vote-type="up">▲</button>
         {% endif %}
 
         <span class="vote-count">{{ question.rating }}</span>
 
         {% if user.is_authenticated and user != question.author %}
-        <button class="vote-btn js-vote" data-vote-type="down">▼</button>
+        <button class="vote-btn js-vote {% if question.user_vote == -1 %}active{% endif %}" data-vote-type="down">▼</button>
         {% endif %}
     </div>
 
