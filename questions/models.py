@@ -85,6 +85,9 @@ class Question(models.Model):
 
     def get_absolute_url(self):
         return reverse('question', kwargs={'question_id': self.pk})
+    
+    def get_centrifugo_channel(self):
+        return f"public:question_{self.id}"
 
 class AnswerManager(models.Manager):
     def get_with_vote(self, user=None):

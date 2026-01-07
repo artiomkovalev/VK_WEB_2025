@@ -1,6 +1,3 @@
-import jwt
-import time
-import requests
 import json
 from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
@@ -15,9 +12,10 @@ from django.http import JsonResponse
 from questions.services import toggle_vote
 from django.core.cache import cache
 from django.conf import settings
-from django.template.loader import render_to_string
+from django.contrib.staticfiles.storage import staticfiles_storage
 from .models import Question, Answer, Tag, User, QuestionLike, AnswerLike
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
+from questions.services import toggle_vote, get_centrifugo_token, publish_to_centrifugo
 
 QUESTIONS_PER_PAGE = 10
 ANSWERS_PER_PAGE = 5
@@ -118,16 +116,13 @@ class QuestionDetailView(SidebarMixin, DetailView):
         context['page_range'] = page_range
         context['form'] = AnswerForm()
 
-        user_id = str(self.request.user.id) if self.request.user.is_authenticated else ""
-        token = jwt.encode({
-            "sub": user_id,
-            "exp": int(time.time()) + 3600
-        }, settings.CENTRIFUGO_HMAC_SECRET, algorithm="HS256")
+        user_id = self.request.user.id if self.request.user.is_authenticated else None
+        token = get_centrifugo_token(user_id)
         
         context['centrifugo'] = {
             'token': token,
             'url': settings.CENTRIFUGO_WS_URL,
-            'channel': f"public:question_{self.object.id}"
+            'channel': self.object.get_centrifugo_channel()
         }
         
         return context
@@ -141,30 +136,22 @@ class AddAnswerView(LoginRequiredMixin, SidebarMixin, CreateView):
         question = get_object_or_404(Question, pk=self.kwargs['question_id'])
         answer = form.save(user=self.request.user, question=question)
 
-        try:
-            answer_html = render_to_string('blocks/answer_item.html', {'answer': answer, 'user': None})
-            command = {
-                "method": "publish",
-                "params": {
-                    "channel": f"public:question_{question.id}",
-                    "data": {
-                        "html": answer_html,
-                        "author": answer.author.username
-                    }
-                }
-            }
-            headers = {
-                'Content-Type': 'application/json',
-                'X-API-Key': settings.CENTRIFUGO_API_KEY
-            }
-            requests.post(
-                settings.CENTRIFUGO_API_URL, 
-                data=json.dumps(command), 
-                headers=headers, 
-                timeout=1
-            )
-        except Exception as e:
-            print(f"Centrifugo error: {e}")
+        if answer.author.avatar:
+            avatar_url = answer.author.avatar.url
+        else:
+            avatar_url = staticfiles_storage.url('images/cat.jpg')
+
+        data = {
+            'id': answer.id,
+            'text': answer.text,
+            'author': answer.author.username,
+            'avatar_url': avatar_url,
+            'rating': 0,
+            'question_id': question.id,
+            'can_mark_correct': self.request.user == question.author
+        }
+
+        publish_to_centrifugo(question.get_centrifugo_channel(), data)
 
         total_answers = question.answer_set.count()
         page_num = (total_answers // ANSWERS_PER_PAGE) + 1 if total_answers % ANSWERS_PER_PAGE != 0 else (total_answers // ANSWERS_PER_PAGE)

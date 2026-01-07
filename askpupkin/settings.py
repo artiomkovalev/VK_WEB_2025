@@ -1,8 +1,15 @@
 import os
+import json
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+try:
+    with open(BASE_DIR / 'config.json', 'r') as f:
+        config = json.load(f)
+except FileNotFoundError:
+    config = {}
 
 
 # Quick-start development settings - unsuitable for production
@@ -133,7 +140,7 @@ CACHES = {
     }
 }
 
-CENTRIFUGO_API_URL = "http://localhost:8000/api"
-CENTRIFUGO_WS_URL = "ws://localhost:8000/connection/websocket"
-CENTRIFUGO_API_KEY = "api-key"
-CENTRIFUGO_HMAC_SECRET = "hmac-secret"
+CENTRIFUGO_API_URL = "http://localhost:8001/api"
+CENTRIFUGO_WS_URL = "ws://localhost:8001/connection/websocket"
+CENTRIFUGO_API_KEY = config.get('http_api', {}).get('key', 'api-key')
+CENTRIFUGO_HMAC_SECRET = config.get('client', {}).get('token', {}).get('hmac_secret_key', 'hmac-secret')
