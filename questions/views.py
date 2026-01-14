@@ -1,16 +1,21 @@
+import jwt
+import time
+import requests
+import json
 from django.forms import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
-from django.db.models import Count, Sum
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, View
 from django.http import JsonResponse
 from questions.services import toggle_vote
+from django.core.cache import cache
+from django.conf import settings
+from django.template.loader import render_to_string
 from .models import Question, Answer, Tag, User, QuestionLike, AnswerLike
 from .forms import LoginForm, RegistrationForm, SettingsForm, QuestionForm, AnswerForm
 
@@ -43,8 +48,8 @@ def paginate(objects_list, request, per_page=10):
 class SidebarMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['popular_tags'] = Tag.objects.popular()
-        context['best_members'] = User.objects.best()
+        context['popular_tags'] = cache.get('popular_tags', [])
+        context['best_members'] = cache.get('best_members', [])
         return context
 
 class BaseQuestionListView(SidebarMixin, ListView):
@@ -63,7 +68,7 @@ class BaseQuestionListView(SidebarMixin, ListView):
 
 class IndexView(BaseQuestionListView):
     def get_queryset(self):
-        return Question.objects.new()
+        return Question.objects.new(user=self.request.user)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -72,7 +77,7 @@ class IndexView(BaseQuestionListView):
 
 class HotView(BaseQuestionListView):
     def get_queryset(self):
-        return Question.objects.hot()
+        return Question.objects.hot(user=self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -82,10 +87,8 @@ class HotView(BaseQuestionListView):
 class TagView(BaseQuestionListView):
     def get_queryset(self):
         self.tag_obj = get_object_or_404(Tag, name=self.kwargs['tag_name'])
-        return Question.objects.filter(tags=self.tag_obj)\
-            .select_related('author')\
-            .prefetch_related('tags')\
-            .annotate(num_answers=Count('answer'))\
+        return Question.objects.get_full_queryset(self.request.user)\
+            .filter(tags=self.tag_obj)\
             .order_by('-created_at')
 
     def get_context_data(self, **kwargs):
@@ -100,17 +103,33 @@ class QuestionDetailView(SidebarMixin, DetailView):
     context_object_name = 'question'
 
     def get_queryset(self):
-        return super().get_queryset().select_related('author').prefetch_related('tags')
+        return Question.objects.get_full_queryset(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        answers = self.object.answer_set.select_related('author').order_by('created_at')
+        answers = Answer.objects.get_with_vote(self.request.user)\
+            .filter(question=self.object)\
+            .select_related('author')\
+            .order_by('created_at')
         
         page, page_range = paginate(answers, self.request, per_page=ANSWERS_PER_PAGE)
         
         context['answers'] = page
         context['page_range'] = page_range
         context['form'] = AnswerForm()
+
+        user_id = str(self.request.user.id) if self.request.user.is_authenticated else ""
+        token = jwt.encode({
+            "sub": user_id,
+            "exp": int(time.time()) + 3600
+        }, settings.CENTRIFUGO_HMAC_SECRET, algorithm="HS256")
+        
+        context['centrifugo'] = {
+            'token': token,
+            'url': settings.CENTRIFUGO_WS_URL,
+            'channel': f"public:question_{self.object.id}"
+        }
+        
         return context
 
 class AddAnswerView(LoginRequiredMixin, SidebarMixin, CreateView):
@@ -121,6 +140,32 @@ class AddAnswerView(LoginRequiredMixin, SidebarMixin, CreateView):
     def form_valid(self, form):
         question = get_object_or_404(Question, pk=self.kwargs['question_id'])
         answer = form.save(user=self.request.user, question=question)
+
+        try:
+            answer_html = render_to_string('blocks/answer_item.html', {'answer': answer, 'user': None})
+            command = {
+                "method": "publish",
+                "params": {
+                    "channel": f"public:question_{question.id}",
+                    "data": {
+                        "html": answer_html,
+                        "author": answer.author.username
+                    }
+                }
+            }
+            headers = {
+                'Content-Type': 'application/json',
+                'X-API-Key': settings.CENTRIFUGO_API_KEY
+            }
+            requests.post(
+                settings.CENTRIFUGO_API_URL, 
+                data=json.dumps(command), 
+                headers=headers, 
+                timeout=1
+            )
+        except Exception as e:
+            print(f"Centrifugo error: {e}")
+
         total_answers = question.answer_set.count()
         page_num = (total_answers // ANSWERS_PER_PAGE) + 1 if total_answers % ANSWERS_PER_PAGE != 0 else (total_answers // ANSWERS_PER_PAGE)
         return redirect(f"{question.get_absolute_url()}?page={page_num}#answer-{answer.id}")
@@ -217,40 +262,34 @@ class AnswerVoteView(BaseVoteView):
     like_model = AnswerLike
     related_field_name = 'answer'
 
-class MarkCorrectView(LoginRequiredMixin, View):
+class MarkCorrectView(View):
+    http_method_names = ['post']
 
-    def dispatch(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'Please log in'}, status=401)
         
-        if request.method.lower() != 'post':
-            return JsonResponse({'error': 'Method not allowed'}, status=405)
-        
-        answer_id = request.POST.get('answer_id')
-
         try:
-            self.answer = Answer.objects.select_related('question').get(pk=answer_id)
-        except Answer.DoesNotExist:
-            return JsonResponse({'error': 'Answer not found'}, status=404)
+            data = json.loads(request.body)
+            answer_id = data.get('answer_id')
+            answer = Answer.objects.select_related('question').get(pk=answer_id)
+        except (json.JSONDecodeError, Answer.DoesNotExist):
+            return JsonResponse({'error': 'Answer not found or invalid JSON'}, status=404)
         
-        if request.user != self.answer.question.author:
+        if request.user != answer.question.author:
             return JsonResponse({'error': 'You are not the author'}, status=403)
-    
-        return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
-                question = self.answer.question
-                
-                if self.answer.is_correct:
-                    self.answer.is_correct = False
-                    self.answer.save(update_fields=['is_correct'])
+                question = answer.question
+                if answer.is_correct:
+                    answer.is_correct = False
+                    answer.save(update_fields=['is_correct'])
                 else:
-                    question.answer_set.exclude(pk=self.answer.pk).update(is_correct=False)
-                    self.answer.is_correct = True
-                    self.answer.save(update_fields=['is_correct'])
-            return JsonResponse({'status': self.answer.is_correct})
+                    question.answer_set.exclude(pk=answer.pk).update(is_correct=False)
+                    answer.is_correct = True
+                    answer.save(update_fields=['is_correct'])
+            return JsonResponse({'status': answer.is_correct})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
@@ -262,12 +301,7 @@ class SearchSuggestionsView(View):
         if len(query) < 2:
             return JsonResponse({'results': []})
 
-        vector = SearchVector('title', weight='A') + SearchVector('text', weight='B')
-        search_query = SearchQuery(query)
-
-        questions = Question.objects.annotate(
-            rank=SearchRank(vector, search_query)
-        ).filter(rank__gte=0.1).order_by('-rank')[:5]
+        questions = Question.objects.search(query)[:5]
 
         results = [
             {

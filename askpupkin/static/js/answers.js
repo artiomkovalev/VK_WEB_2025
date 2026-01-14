@@ -9,16 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
       fetch('/correct/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
           'X-CSRFToken': CSRF_TOKEN
         },
-        body: `answer_id=${answerId}`
+        body: JSON.stringify({ answer_id: answerId })
       })
         .then(response => {
           if (response.ok) {
             return response.json();
           }
-          throw new Error('Permission denied');
+          return response.json().then(err => { throw new Error(err.error || 'Error'); });
         })
         .then(data => {
           if (data.status === true) {

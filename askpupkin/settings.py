@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'questions'
 ]
 
@@ -123,3 +124,16 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'index'
 LOGOUT_REDIRECT_URL = 'index'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(BASE_DIR, 'django_cache'),
+        'TIMEOUT': 150,
+    }
+}
+
+CENTRIFUGO_API_URL = "http://localhost:8000/api"
+CENTRIFUGO_WS_URL = "ws://localhost:8000/connection/websocket"
+CENTRIFUGO_API_KEY = "api-key"
+CENTRIFUGO_HMAC_SECRET = "hmac-secret"

@@ -2,7 +2,8 @@ from django.db import models
 from django.contrib.auth.models import UserManager as DefaultUserManager, AbstractUser
 from django.urls import reverse
 from django.contrib.postgres.indexes import GinIndex
-from django.db.models import Count, UniqueConstraint, Q
+from django.contrib.postgres.search import TrigramSimilarity
+from django.db.models import Count, UniqueConstraint, Q, Subquery, OuterRef, Value, IntegerField
 
 class UserManager(DefaultUserManager):
     def best(self):
@@ -27,18 +28,38 @@ class Tag(models.Model):
     def __str__(self):
         return f"#{self.name}"
 
-class QuestionManager(models.Manager):
-    def get_full_queryset(self):
-        return super().get_queryset()\
+class SearchManagerMixin:
+    def search(self, query):
+        if not query:
+            return self.none()
+        return self.get_queryset()\
+            .annotate(
+                similarity=TrigramSimilarity('title', query) + TrigramSimilarity('text', query)
+            )\
+            .filter(similarity__gt=0.05) \
+            .order_by('-similarity')
+
+class QuestionManager(SearchManagerMixin, models.Manager):
+    def get_full_queryset(self, user=None):
+        qs = super().get_queryset()\
             .select_related('author')\
             .prefetch_related('tags')\
             .annotate(num_answers=Count('answer'))
+        if user and user.is_authenticated:
+            vote_subquery = QuestionLike.objects.filter(
+                question=OuterRef('pk'), 
+                user=user
+            ).values('value')[:1]
+            qs = qs.annotate(user_vote=Subquery(vote_subquery, output_field=IntegerField()))
+        else:
+            qs = qs.annotate(user_vote=Value(0, output_field=IntegerField()))
+        return qs
     
-    def new(self):
-        return self.get_full_queryset().order_by('-created_at')
+    def new(self, user=None):
+        return self.get_full_queryset(user).order_by('-created_at')
 
-    def hot(self):
-        return self.get_full_queryset().order_by('-rating')
+    def hot(self, user=None):
+        return self.get_full_queryset(user).order_by('-rating')
 
 class Question(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -65,6 +86,19 @@ class Question(models.Model):
     def get_absolute_url(self):
         return reverse('question', kwargs={'question_id': self.pk})
 
+class AnswerManager(models.Manager):
+    def get_with_vote(self, user=None):
+        qs = self.get_queryset()
+        if user and user.is_authenticated:
+            vote_subquery = AnswerLike.objects.filter(
+                answer=OuterRef('pk'), 
+                user=user
+            ).values('value')[:1]
+            qs = qs.annotate(user_vote=Subquery(vote_subquery, output_field=IntegerField()))
+        else:
+            qs = qs.annotate(user_vote=Value(0, output_field=IntegerField()))
+        return qs
+
 class Answer(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
@@ -72,6 +106,8 @@ class Answer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_correct = models.BooleanField(default=False)
     rating = models.IntegerField(default=0)
+
+    objects = AnswerManager()
 
     class Meta:
         constraints = [

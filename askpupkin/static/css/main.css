@@ -243,6 +243,11 @@ h2, h3 {
     transition: color 0.2s;
 }
 
+.vote-btn.active {
+    color: var(--primary);
+    font-weight: bold;
+}
+
 .vote-btn:hover {
     color: var(--primary);
 }
