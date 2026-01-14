@@ -73,12 +73,39 @@
     </div>
     {% endif %}
 </div>
+<template id="answer-template">
+    <div class="question-card js-vote-container" data-type="answer">
+        <div class="vote-section">
+            <img src="" alt="avatar" class="vote-avatar">
+            
+            <button class="vote-btn js-vote" data-vote-type="up">▲</button>
+            <span class="vote-count">0</span>
+            <button class="vote-btn js-vote" data-vote-type="down">▼</button>
+        </div>
+
+        <div class="card-content">
+            <p class="card-text"></p>
+            
+            <div class="card-meta">
+                <span class="author-info">
+                    Answered by <strong class="author-name"></strong>
+                </span>
+                
+                <div class="correct-answer-block hidden" style="display: none;">
+                    <input type="checkbox" class="js-correct-checkbox">
+                    <label>Mark as correct</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://unpkg.com/centrifuge@5.0.1/dist/centrifuge.js"></script>
 <script src="{% static 'js/vote.js' %}"></script>
 <script src="{% static 'js/answers.js' %}"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const config = {
@@ -87,23 +114,39 @@
             channel: "{{ centrifugo.channel }}"
         };
 
-        const centrifuge = new Centrifuge(config.url, {
-            token: config.token
-        });
-
-        centrifuge.on('connected', function (ctx) {
-            console.log("Connected to Centrifugo");
-        });
-
+        const centrifuge = new Centrifuge(config.url, { token: config.token });
         const sub = centrifuge.newSubscription(config.channel);
+        const answersContainer = document.getElementById('answers');
+        const template = document.getElementById('answer-template');
 
         sub.on('publication', function (ctx) {
-            const newAnswerHtml = ctx.data.html;
-            const answersContainer = document.getElementById('answers');
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = newAnswerHtml;
-            const newElement = tempDiv.firstElementChild;
-            answersContainer.appendChild(newElement);
+            const data = ctx.data;
+
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.question-card');
+
+            card.dataset.id = data.id;
+            card.id = `answer-${data.id}`;
+
+            clone.querySelector('.vote-avatar').src = data.avatar_url;
+            clone.querySelector('.vote-count').textContent = data.rating;
+            clone.querySelector('.card-text').textContent = data.text;
+            clone.querySelector('.author-name').textContent = data.author;
+
+            if (data.can_mark_correct) {
+                const correctBlock = clone.querySelector('.correct-answer-block');
+                const checkbox = clone.querySelector('.js-correct-checkbox');
+                
+                correctBlock.style.display = 'flex';
+                checkbox.id = `correct_${data.id}`;
+                checkbox.dataset.answerId = data.id;
+                checkbox.dataset.questionId = data.question_id;
+                clone.querySelector('label').setAttribute('for', `correct_${data.id}`);
+                
+                checkbox.addEventListener('change', window.handleCorrectCheckboxChange); 
+            }
+
+            answersContainer.appendChild(clone);
         });
 
         sub.subscribe();

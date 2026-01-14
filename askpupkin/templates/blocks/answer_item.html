@@ -8,13 +8,13 @@
         {% endif %}
 
         {% if user.is_authenticated and user != answer.author %}
-        <button class="vote-btn js-vote" data-vote-type="up">▲</button>
+        <button class="vote-btn js-vote {% if answer.user_vote == 1 %}active{% endif %}" data-vote-type="up">▲</button>
         {% endif %}
 
         <span class="vote-count">{{ answer.rating }}</span>
 
         {% if user.is_authenticated and user != answer.author %}
-        <button class="vote-btn js-vote" data-vote-type="down">▼</button>
+        <button class="vote-btn js-vote {% if answer.user_vote == -1 %}active{% endif %}" data-vote-type="down">▼</button>
         {% endif %}
     </div>
 
@@ -23,7 +23,7 @@
 
         <div class="card-meta">
             <span style="margin-right: auto;">
-                Answered by <a href="#">{{ answer.author.username }}</a>
+                Answered by <strong>{{ answer.author.username }}</strong>
             </span>
 
             <div class="correct-answer-block">
